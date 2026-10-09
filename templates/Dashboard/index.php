@@ -25,7 +25,7 @@ $shortLabels = [
 <?= $this->Form->control('start', ['label' => 'Data inicial', 'type' => 'date', 'value' => $filters['start']]) ?>
 <?= $this->Form->control('end', ['label' => 'Data final', 'type' => 'date', 'value' => $filters['end']]) ?>
 <?= $this->Form->button('Filtrar') ?>
-<?= $this->Html->link('Limpar filtros', '/painel') ?>
+<?= $this->Html->link('Limpar filtros', ['controller' => 'Dashboard', 'action' => 'index']) ?>
 <?= $this->Form->end() ?>
 </details>
 <?php if (!count($requests)): ?><p class="message">Nenhuma solicitação encontrada para os filtros escolhidos.</p><?php else: ?>

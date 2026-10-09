@@ -14,7 +14,9 @@ class HomeController extends AppController
     public function index(): void
     {
         $role = $this->request->getAttribute('identity')->get('role');
-        $this->redirect(\App\Domain\Enum\UserRole::tryFrom($role)?->hasDashboard() ? '/painel' : ($role === \App\Domain\Enum\UserRole::MANTENEDOR->value ? '/acompanhamento' : '/minhas-solicitacoes'));
+        $this->redirect(\App\Domain\Enum\UserRole::tryFrom($role)?->hasDashboard()
+            ? ['controller' => 'Dashboard', 'action' => 'index']
+            : ['controller' => 'Requests', 'action' => $role === \App\Domain\Enum\UserRole::MANTENEDOR->value ? 'work' : 'index']);
     }
 
     public function login(): void
@@ -25,7 +27,8 @@ class HomeController extends AppController
             if ($this->request->is('post')) {
                 $this->Authentication->setIdentity($this->request->getAttribute('identity'));
             }
-            $this->redirect($this->request->getAttribute('identity')->get('must_change_password') ? '/alterar-senha' : '/');
+            $this->redirect($this->request->getAttribute('identity')->get('must_change_password')
+                ? ['controller' => 'Profile', 'action' => 'password'] : ['controller' => 'Home', 'action' => 'index']);
 
             return;
         }
@@ -39,6 +42,6 @@ class HomeController extends AppController
         $this->request->allowMethod(['post']);
         $this->Authentication->logout();
 
-        return $this->redirect('/entrar');
+        return $this->redirect(['controller' => 'Home', 'action' => 'login']);
     }
 }

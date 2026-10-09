@@ -112,3 +112,20 @@ válidos para autenticação e não foram redefinidos pela migration.
 
 O início abre a fila para PCM/Gestor e as próprias solicitações para Solicitante.
 Tema padrão escuro, logo completa somente no login e administração agrupada.
+
+## Publicação em subpasta
+Configure no ambiente de produção:
+
+    APP_DEBUG=false
+    APP_FULL_BASE_URL=https://pcm.biolasa.com.br/pcm-solicitacao-os
+    APP_BASE_URL=/pcm-solicitacao-os
+
+O servidor web deve montar /pcm-solicitacao-os apontando exclusivamente para
+webroot, com rewrite para index.php. Os arquivos .htaccess existentes usam
+caminhos relativos e não precisam receber o prefixo nas rotas.
+Nunca exponha .env, config, vendor ou o restante do projeto pelo servidor web.
+
+App.baseUrl vem de APP_BASE_URL; o bootstrap configura também App.base para
+as URLs com rewrite. O Router usa a origem do domínio, acrescentando a subpasta
+uma vez. As variáveis reais do ambiente têm prioridade sobre .env.
+No ambiente local, mantenha APP_BASE_URL vazio ou false.

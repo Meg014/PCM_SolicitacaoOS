@@ -113,8 +113,9 @@ class Application extends BaseApplication implements \Authentication\Authenticat
     public function getAuthenticationService(
         \Psr\Http\Message\ServerRequestInterface $request,
     ): \Authentication\AuthenticationServiceInterface {
+        $loginUrl = \Cake\Routing\Router::url(['controller' => 'Home', 'action' => 'login']);
         $service = new \Authentication\AuthenticationService([
-            'unauthenticatedRedirect' => '/entrar',
+            'unauthenticatedRedirect' => $loginUrl,
         ]);
         $resolver = [
             'className' => 'Authentication.Orm',
@@ -131,7 +132,8 @@ class Application extends BaseApplication implements \Authentication\Authenticat
         ]);
         $service->loadAuthenticator('Authentication.Form', [
             'fields' => ['username' => 'login', 'password' => 'password'],
-            'loginUrl' => '/entrar',
+            // O UrlChecker resolve a rota; uma string já prefixada acrescentaria a base duas vezes.
+            'loginUrl' => ['controller' => 'Home', 'action' => 'login'],
             'identifier' => [
                 'className' => \App\Identifier\UsernameOrEmailIdentifier::class,
                 'fields' => ['username' => ['username', 'email'], 'password' => 'password'],

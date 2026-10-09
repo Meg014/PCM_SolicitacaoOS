@@ -5,7 +5,7 @@
 <?= $this->Form->control('start', ['label' => 'Data inicial', 'type' => 'date', 'value' => $value('start')]) ?>
 <?= $this->Form->control('end', ['label' => 'Data final', 'type' => 'date', 'value' => $value('end')]) ?>
 <?= $this->Form->button('Filtrar período') ?>
-<?= $this->Html->link('Limpar filtros', '/indicadores') ?>
+<?= $this->Html->link('Limpar filtros', ['controller' => 'Reports', 'action' => 'indicators']) ?>
 <?= $this->Form->end() ?>
 <?php if ($error): ?><p class="error-message" role="alert"><?= h($error) ?></p><?php elseif ($indicators): ?>
 <p>Total de solicitações: <strong><?= $indicators['total'] ?></strong></p>

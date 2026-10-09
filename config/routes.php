@@ -5,6 +5,7 @@ use Cake\Routing\Route\DashedRoute;
 use Cake\Routing\RouteBuilder;
 
 return function (RouteBuilder $routes): void {
+    // Caminhos relativos à aplicação: App.base acrescenta a subpasta, sem repetir o prefixo nas rotas.
     $routes->setRouteClass(DashedRoute::class);
     $routes->scope('/', function (RouteBuilder $builder): void {
         $builder->connect('/', ['controller' => 'Home', 'action' => 'index']);

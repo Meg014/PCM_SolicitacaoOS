@@ -161,3 +161,11 @@ Formato:
 - CSRF continua obrigatório e agora valida antes da autenticação. Envios inválidos do login são rejeitados e redirecionados com 303 para um GET novo e mensagem humana; credenciais não são armazenadas/reenviadas. Demais ações mantêm erro 403 e proteção existente.
 - Login e redirecionamento de recuperação usam Cache-Control: no-store. Testes passaram a gerar o cookie com o nome próprio.
 - Verificação HTTP em localhost:8765: token inválido recuperou a tela e a tentativa seguinte com token novo alcançou autenticação. Testes específicos: ausência/divergência não autenticam; token válido funciona mesmo com cookie genérico de outro projeto.
+## 2026-10-09 — Base path configurável
+- APP_BASE_URL alimenta App.baseUrl; bootstrap normaliza a subpasta e configura App.base para manter webroot correto com rewrite. Vazio/false mantém a detecção local padrão.
+- APP_FULL_BASE_URL pode incluir a subpasta. Configure preserva esse valor; Router recebe somente a origem quando há base explícita, evitando prefixo duplicado em URLs absolutas.
+- Ambiente real prevalece sobre dotenv mediante skipExisting; nenhuma credencial/local .env foi alterada.
+- Redirects de acesso, início, saída e troca de senha usam arrays de rota. Menu, formulários, filtros e autocomplete usam helpers com rotas; assets relativos ao webroot incluem a base.
+- FormAuthenticator recebe a rota de login diretamente, pois seu UrlChecker já resolve Router::url. Redirecionamento não autenticado usa a URL gerada. Sair usa _method POST na geração da rota restrita.
+- Rotas permanecem relativas à aplicação; não se coloca /pcm-solicitacao-os no scope. Rewrite existente é relativo e o servidor deve montar somente webroot na subpasta.
+- Testes cobrem URLs públicas/privadas, CSS/JS/logo/favicon, formulário login, POST login/logout, troca obrigatória de senha, CSRF, ações PCM, endpoints e bootstrap real com variáveis de produção e base vazia/false.

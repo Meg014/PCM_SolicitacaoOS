@@ -14,7 +14,7 @@
 <?= $this->Form->control('asset', ['label' => 'Bem / equipamento', 'maxlength' => 100, 'value' => $value('asset')]) ?>
 <?= $this->Form->control('q', ['label' => 'Buscar número ou descrição', 'maxlength' => 100, 'value' => $value('q')]) ?>
 <?= $this->Form->button('Filtrar') ?>
-<?= $this->Html->link('Limpar filtros', '/relatorios') ?>
+<?= $this->Html->link('Limpar filtros', ['controller' => 'Reports', 'action' => 'index']) ?>
 <?= $this->Form->end() ?>
 <?php if (!count($requests)): ?><p>Nenhuma solicitação encontrada. Revise os filtros ou escolha outro período.</p><?php else: ?>
 <div class="table-scroll" role="region" aria-label="Relatório de solicitações" tabindex="0">

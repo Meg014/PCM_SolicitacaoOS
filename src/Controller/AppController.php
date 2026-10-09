@@ -36,7 +36,7 @@ class AppController extends Controller
         $action = $this->request->getParam('action');
         $allowed = ($controller === 'Profile' && $action === 'password') || ($controller === 'Home' && in_array($action, ['login', 'logout'], true));
         if ($identity && $identity->get('must_change_password') && !$allowed) {
-            $event->setResult($this->redirect('/alterar-senha'));
+            $event->setResult($this->redirect(['controller' => 'Profile', 'action' => 'password']));
             $event->stopPropagation();
         }
     }

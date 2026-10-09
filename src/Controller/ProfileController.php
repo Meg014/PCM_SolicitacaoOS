@@ -23,7 +23,7 @@ class ProfileController extends AppController
                 $this->Authentication->setIdentity($this->fetchTable('Users')->get($id));
                 $this->Flash->success('Sua senha foi alterada.');
 
-                return $this->redirect('/');
+                return $this->redirect(['controller' => 'Home', 'action' => 'index']);
             } catch (\InvalidArgumentException $e) {
                 $this->Flash->error($e->getMessage());
             } catch (\PDOException | \Cake\ORM\Exception\PersistenceFailedException $e) {

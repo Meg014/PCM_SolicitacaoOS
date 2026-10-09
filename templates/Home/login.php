@@ -4,7 +4,7 @@
     <h1 id="titulo">Solicitação de Ordem de Serviço</h1>
     <p>Registre pedidos de manutenção e acompanhe o atendimento pelo PCM.</p>
     <h2>Entrar no sistema</h2>
-    <?= $this->Form->create(null, ['url' => '/entrar']) ?>
+    <?= $this->Form->create(null, ['url' => ['controller' => 'Home', 'action' => 'login']]) ?>
     <?= $this->Form->control('login', ['label' => 'Usuário ou e-mail', 'type' => 'text', 'required' => true, 'autocomplete' => 'username', 'autocapitalize' => 'none', 'spellcheck' => 'false']) ?>
     <?= $this->Form->control('password', ['label' => 'Senha', 'type' => 'password', 'required' => true, 'autocomplete' => 'current-password']) ?>
     <?= $this->Form->button('Entrar') ?>

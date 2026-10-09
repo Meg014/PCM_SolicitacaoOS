@@ -14,7 +14,7 @@ $text = fn($value) => is_scalar($value) ? (string)$value : '';
 <?= $this->Form->create($request, ['id' => 'request-form', 'type' => 'file']) ?>
 
 <?= $this->Form->control('unit', ['label' => 'Unidade', 'options' => \App\Domain\Enum\RequestUnit::options(), 'empty' => 'Selecione a unidade', 'required' => true]) ?>
-<div class="autocomplete" data-lookup="<?= h($this->Url->build('/api/bens')) ?>" data-kind="asset">
+<div class="autocomplete" data-lookup="<?= h($this->Url->build(['controller' => 'Lookups', 'action' => 'assets'])) ?>" data-kind="asset">
     <?= $this->Form->control('asset_label', ['label' => 'Bem / Equipamento', 'value' => $text($data['asset_label'] ?? ''), 'required' => true, 'autocomplete' => 'off', 'role' => 'combobox', 'aria-autocomplete' => 'list', 'aria-expanded' => 'false', 'aria-controls' => 'asset-results', 'aria-describedby' => 'asset-help', 'data-search' => true]) ?>
     <?= $this->Form->hidden('asset_code', ['value' => $text($data['asset_code'] ?? ''), 'data-selected' => true]) ?>
     <?= $this->Form->hidden('asset_branch', ['value' => $text($data['asset_branch'] ?? ''), 'data-branch' => true]) ?>
@@ -23,7 +23,7 @@ $text = fn($value) => is_scalar($value) ? (string)$value : '';
     <div id="asset-results" class="lookup-results" role="listbox" aria-label="Equipamentos encontrados" hidden></div>
     <p class="help lookup-message" aria-live="polite"></p>
 </div>
-<section id="active-alert" class="active-alert" data-url="<?= h($this->Url->build('/api/solicitacoes-ativas')) ?>" aria-labelledby="active-title" hidden>
+<section id="active-alert" class="active-alert" data-url="<?= h($this->Url->build(['controller' => 'Lookups', 'action' => 'active'])) ?>" aria-labelledby="active-title" hidden>
 <h2 id="active-title">Já existe uma Ordem de Serviço ativa para este equipamento</h2>
 <p>Confira se é o mesmo serviço. Você pode continuar uma execução existente ou confirmar um novo pedido para outro problema.</p>
 <div id="active-requests"></div>
@@ -31,7 +31,7 @@ $text = fn($value) => is_scalar($value) ? (string)$value : '';
 <?= $this->Form->control('duplicate_reason', ['label' => 'Motivo do novo pedido (opcional)', 'type' => 'textarea', 'maxlength' => 2000]) ?>
 </section>
 <?= $this->Form->error('confirm_existing') ?>
-<div class="autocomplete" data-lookup="<?= h($this->Url->build('/api/setores')) ?>" data-kind="sector">
+<div class="autocomplete" data-lookup="<?= h($this->Url->build(['controller' => 'Lookups', 'action' => 'sectors'])) ?>" data-kind="sector">
     <?= $this->Form->control('sector_label', ['label' => 'Mão de obra', 'value' => $text($data['sector_label'] ?? ''), 'required' => true, 'autocomplete' => 'off', 'role' => 'combobox', 'aria-autocomplete' => 'list', 'aria-expanded' => 'false', 'aria-controls' => 'sector-results', 'aria-describedby' => 'sector-help', 'data-search' => true]) ?>
     <?= $this->Form->hidden('sector_id', ['value' => $text($data['sector_id'] ?? ''), 'data-selected' => true]) ?>
     <?= $this->Form->error('sector_id') ?>

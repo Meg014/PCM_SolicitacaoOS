@@ -76,7 +76,7 @@ require CAKE . 'functions.php';
 */
 if (file_exists(ROOT . DS . '.env')) {
     (new \josegonzalez\Dotenv\Loader([ROOT . DS . '.env']))
-        ->parse()->putenv(false)->toEnv(false)->toServer(false);
+        ->parse()->skipExisting()->putenv(false)->toEnv(false)->toServer(false);
 }
 
 /*
@@ -161,6 +161,17 @@ if (PHP_SAPI === 'cli') {
  *
  * Example: APP_FULL_BASE_URL=https://example.com
  */
+// Base explícita evita que baseUrl seja interpretada como um front controller sem rewrite.
+$appBaseUrl = Configure::read('App.baseUrl');
+if (is_string($appBaseUrl) && in_array(strtolower(trim($appBaseUrl)), ['', 'false', '(false)'], true)) {
+    $appBaseUrl = false;
+    Configure::write('App.baseUrl', false);
+}
+if (is_string($appBaseUrl) && $appBaseUrl !== '') {
+    $appBaseUrl = rtrim('/' . trim($appBaseUrl, '/'), '/');
+    Configure::write('App.baseUrl', $appBaseUrl ?: false);
+    Configure::write('App.base', $appBaseUrl);
+}
 $fullBaseUrl = Configure::read('App.fullBaseUrl');
 if (!$fullBaseUrl) {
     $httpHost = env('HTTP_HOST');
@@ -180,9 +191,13 @@ if (!$fullBaseUrl) {
     unset($httpHost, $s);
 }
 if ($fullBaseUrl) {
+    // Router soma a origem à base da requisição; não repetir a subpasta nas URLs absolutas.
+    if ($appBaseUrl) {
+        $fullBaseUrl = preg_replace('#^(https?://[^/]+)(?:/.*)?$#', '$1', $fullBaseUrl);
+    }
     Router::fullBaseUrl($fullBaseUrl);
 }
-unset($fullBaseUrl);
+unset($fullBaseUrl, $appBaseUrl);
 
 /*
  * Apply the loaded configuration settings to their respective systems.
