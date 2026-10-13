@@ -58,6 +58,7 @@ require CAKE . 'functions.php';
     'new_password' => '[oculto]', 'confirmation' => '[oculto]',
     'DB_PASSWORD' => '[oculto]', 'TEST_DB_PASSWORD' => '[oculto]',
     'PROTHEUS_DB_PASSWORD' => '[oculto]', 'ADMIN_SEED_PASSWORD' => '[oculto]',
+    'BOOTSTRAP_ADMIN_PASSWORD' => '[oculto]',
 ]);
 
 /*

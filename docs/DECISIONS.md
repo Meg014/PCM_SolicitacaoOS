@@ -169,3 +169,10 @@ Formato:
 - FormAuthenticator recebe a rota de login diretamente, pois seu UrlChecker já resolve Router::url. Redirecionamento não autenticado usa a URL gerada. Sair usa _method POST na geração da rota restrita.
 - Rotas permanecem relativas à aplicação; não se coloca /pcm-solicitacao-os no scope. Rewrite existente é relativo e o servidor deve montar somente webroot na subpasta.
 - Testes cobrem URLs públicas/privadas, CSS/JS/logo/favicon, formulário login, POST login/logout, troca obrigatória de senha, CSRF, ações PCM, endpoints e bootstrap real com variáveis de produção e base vazia/false.
+## 2026-10-13 — Bootstrap do primeiro administrador
+- CreateAdminCommand separado do DevelopmentAdminSeed. Ambiente production obrigatório, salvo confirmação explícita --confirm-non-production.
+- Credenciais exclusivamente nas variáveis temporárias BOOTSTRAP_ADMIN_NAME/USERNAME/EMAIL/PASSWORD, sem argumentos de senha nem valores pessoais hardcoded. E-mail opcional; validações da aplicação preservadas.
+- Cria ADMIN_PCM ativo com must_change_password=true e hash normal Argon2id da entidade User. RegistrationService audita PRODUCTION_ADMIN_BOOTSTRAPPED com autor Sistema e sem senha/hash.
+- Transação PostgreSQL com bloqueio da tabela users serializa verificação/criação. Qualquer ADMIN_PCM, mesmo inativo, torna o comando inócuo; não redefine nem reativa contas.
+- Erros CLI são genéricos, sem exceções/dados sensíveis. BOOTSTRAP_ADMIN_PASSWORD também mascarada pelo Debugger. README inclui coleta segura via PowerShell e limpeza das variáveis do processo.
+- Testes específicos: 5 testes / 48 asserções aprovados, incluindo duplicidade/inatividade, ambiente/confirmação, senha/hash/troca, dados inválidos/colisão e rollback se auditoria falhar. Sintaxe aprovada. Nenhum administrador real foi criado por esta revisão.
