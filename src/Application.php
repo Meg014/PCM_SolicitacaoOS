@@ -97,6 +97,8 @@ class Application extends BaseApplication implements \Authentication\Authenticat
             ->add(new CsrfProtectionMiddleware([
                 'cookieName' => 'pcm_solicitacao_os_csrf',
                 'httponly' => true,
+                'secure' => (bool)(Configure::read('Session.ini')['session.cookie_secure'] ?? false),
+                'samesite' => 'Lax',
             ]))
             ->add(new \Authentication\Middleware\AuthenticationMiddleware($this));
 

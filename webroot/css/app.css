@@ -172,3 +172,10 @@ nav a, .pagination a, td a { min-height: 44px; display: inline-flex; align-items
     button, .button, input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select { min-height: 52px; }
     summary, nav a, .pagination a, td a { min-height: 48px; }
 }
+/* Um único atalho de criação: conteúdo nas filas, cabeçalho nas outras telas. */
+.existing-item-action { display: flex; width: fit-content; margin-top: 1rem; }
+.new-activity { color: #9dd8ff; border-left: 3px solid #60a5fa; padding-left: .75rem; font-size: .9rem; }
+@media (max-width: 1280px) {
+    #main-navigation .navigation-request-shortcut { display: none; }
+    .existing-item-action { width: 100%; justify-content: center; }
+}

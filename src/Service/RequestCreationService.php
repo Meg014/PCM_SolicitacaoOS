@@ -75,7 +75,7 @@ class RequestCreationService
                     'id' => $id, 'number' => sprintf('SOL-%s-%06d', $now->setTimezone('America/Sao_Paulo')->format('Y'), $id),
                     'user_id' => $userId, 'status' => RequestStatus::AGUARDANDO_PCM->value,
                     'asset_code' => $asset['code'], 'asset_branch' => $asset['branch'],
-                    'asset_description' => $asset['description'], 'totvs_os_number' => null,
+                    'asset_description' => $asset['description'], 'totvs_os_number' => null, 'last_activity_at' => $now,
                 ], ['guard' => false]);
                 $requests->saveOrFail($entity);
                 foreach ($items as $item) {

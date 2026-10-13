@@ -71,7 +71,7 @@ class RequestsController extends AppController
     public function view(string $id): void
     {
         $identity = $this->request->getAttribute('identity');
-        $query = $this->fetchTable('ServiceRequests')->find()->contain(['Users', 'Sectors', 'AssignedUsers', 'LinkedUsers', 'CancelledUsers', 'RequestItems', 'RequestAudits.Users', 'RequestAttachments'])
+        $query = $this->fetchTable('ServiceRequests')->find()->contain(['Users', 'Sectors', 'LinkedUsers', 'CancelledUsers', 'RequestItems', 'RequestAudits.Users', 'RequestAttachments'])
             ->where(['ServiceRequests.id' => $id]);
         $query->where(\App\Service\RequestAccess::conditions($identity->get('role'), (int)$identity->getIdentifier()));
         $request = $query->first();
@@ -79,11 +79,6 @@ class RequestsController extends AppController
             throw new NotFoundException('Solicitação não encontrada.');
         }
         $this->set(compact('request'));
-    }
-
-    public function assign(string $id): mixed
-    {
-        return $this->handle($id, 'assign');
     }
 
     public function link(string $id): mixed
@@ -108,9 +103,32 @@ class RequestsController extends AppController
             ->where(\App\Service\RequestAccess::conditions($identity->get('role'), (int)$identity->getIdentifier()))
             ->where(['ServiceRequests.flow' => \App\Domain\Enum\RequestFlow::ACOMPANHAMENTO->value,
                 'ServiceRequests.status IN' => RequestStatus::activeValues()])
-            ->orderBy(['ServiceRequests.created_at' => 'ASC', 'ServiceRequests.id' => 'ASC']);
+            ->orderBy('COALESCE(ServiceRequests.last_activity_at, ServiceRequests.created_at) DESC')->orderBy(['ServiceRequests.id' => 'DESC']);
         $requests = $this->paginate($query, ['limit' => 20]);
         $this->set(compact('requests'));
+    }
+
+    public function addItem(string $id): mixed
+    {
+        $this->request->allowMethod(['get', 'post']);
+        $this->view($id);
+        $request = $this->viewBuilder()->getVar('request');
+        if (!\App\Service\RequestAccess::canAppend($request)) {
+            throw new \Cake\Http\Exception\ConflictException('Esta O.S. não está disponível para novos apontamentos.');
+        }
+        if ($this->request->is('post')) {
+            try {
+                (new \App\Service\RequestExecutionService())->handle((int)$id,
+                    (int)$this->request->getAttribute('identity')->getIdentifier(), 'items', $this->request->getData('items'));
+                $this->Flash->success('Apontamento incluído na O.S. existente. O PCM verá a nova atividade na fila.');
+                return $this->redirect(['action' => 'view', $id]);
+            } catch (\InvalidArgumentException | \Cake\Http\Exception\ConflictException $e) {
+                $this->Flash->error($e->getMessage());
+            } catch (PersistenceFailedException | \PDOException $e) {
+                $this->Flash->error('Não foi possível salvar o apontamento. Tente novamente.');
+            }
+        }
+        return null;
     }
 
     public function items(string $id): mixed { return $this->execute($id, 'items', $this->request->getData('items')); }
@@ -149,7 +167,7 @@ class RequestsController extends AppController
         try {
             (new \App\Service\RequestHandlingService())->handle((int)$id, (int)$identity->getIdentifier(), $action, $value);
             $this->Flash->success(match ($action) {
-                'assign' => 'Você assumiu esta solicitação.', 'link' => 'O.S. TOTVS vinculada.', 'cancel' => 'Solicitação cancelada.',
+                'link' => 'O.S. TOTVS vinculada.', 'cancel' => 'Solicitação cancelada.',
                 'close' => 'Encerramento da Ordem de Serviço confirmado.',
             });
         } catch (\InvalidArgumentException | \Cake\Http\Exception\ConflictException $e) {

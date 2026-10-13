@@ -50,9 +50,10 @@ Execute UMA fase por vez.
 ## Fase 6 — Fila PCM / Dashboard
 - cards de status;
 - tabela/fila ordenada por data;
-- filtros;
-- ação `Assumir solicitação`;
-- status `EM_ANALISE`.
+- somente solicitações/contadores ativos, sem filtros na página inicial;
+- filtros e histórico geral em Relatórios;
+- vínculo direto de O.S. pelo PCM, sem etapa de assumir;
+- atualização leve por polling; `EM_ANALISE` preservado apenas no histórico legado.
 
 ## Fase 7 — Vincular OS TOTVS
 - campo número da OS;

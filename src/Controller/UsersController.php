@@ -11,7 +11,9 @@ class UsersController extends AdminController
 {
     public function index(): void
     {
-        $users = $this->paginate($this->fetchTable('Users')->find()->select(['id', 'name', 'username', 'email', 'role', 'active'])->orderBy(['name' => 'ASC']));
+        $users = $this->paginate($this->fetchTable('Users')->find()->select(['Users.id', 'Users.name', 'Users.username', 'Users.email',
+            'Users.role', 'Users.active', 'Users.department_id', 'UserDepartments.id', 'UserDepartments.name'])
+            ->contain(['UserDepartments'])->orderBy(['Users.name' => 'ASC']));
         $this->set(compact('users'));
     }
 
@@ -36,7 +38,8 @@ class UsersController extends AdminController
             if ($id !== null && ($data['password'] ?? '') === '') {
                 unset($data['password']);
             }
-            $user = $table->patchEntity($user, $data, ['fields' => ['name', 'username', 'email', 'password', 'role', 'active']]);
+            $user = $table->patchEntity($user, $data, ['fields' => ['name', 'username', 'email', 'password', 'role', 'active', 'department_id']]);
+            if (empty($data['department_id'])) { $user->setError('department_id', 'Selecione o setor do funcionário.'); }
             if ($user->isDirty('password')) { $user->set('must_change_password', true); }
             $actorId = (int)$this->request->getAttribute('identity')->getIdentifier();
             if ($id !== null && (int)$user->id === $actorId && (!$user->active || $user->role !== UserRole::ADMIN_PCM->value)) {
@@ -54,7 +57,8 @@ class UsersController extends AdminController
             }
         }
         $roles = UserRole::options();
-        $this->set(compact('user', 'roles'));
+        $departments = $this->fetchTable('UserDepartments')->find('list')->where(['active' => true])->orderBy(['name' => 'ASC'])->toArray();
+        $this->set(compact('user', 'roles', 'departments'));
         $this->render('form');
 
         return null;

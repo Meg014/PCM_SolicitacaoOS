@@ -47,6 +47,7 @@ class ReportsController extends DashboardController
         foreach (RequestStatus::cases() as $status) { $statuses[$status->value] = $status->label(); }
         $sectors = $this->fetchTable('Sectors')->find('list')->orderBy(['name' => 'ASC'])->toArray();
         $users = $this->fetchTable('Users')->find('list')->orderBy(['name' => 'ASC'])->toArray();
-        $this->set(compact('statuses', 'sectors', 'users'));
+        $departments = $this->fetchTable('UserDepartments')->find('list')->orderBy(['name' => 'ASC'])->toArray();
+        $this->set(compact('statuses', 'sectors', 'users', 'departments'));
     }
 }

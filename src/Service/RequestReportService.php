@@ -12,10 +12,26 @@ class RequestReportService
     public function query(array $filters): SelectQuery
     {
         $query = TableRegistry::getTableLocator()->get('ServiceRequests')->find();
-        foreach (['start', 'end', 'status', 'sector_id', 'user_id', 'asset', 'q', 'unit', 'flow'] as $key) {
+        foreach (['start', 'end', 'status', 'sector_id', 'user_id', 'asset', 'q', 'unit', 'flow', 'maintenance_type', 'totvs_os_number', 'department_id'] as $key) {
             if (isset($filters[$key]) && !is_string($filters[$key])) { throw new \InvalidArgumentException('Revise os filtros informados.'); }
         }
         $dates = [];
+        if (($filters['maintenance_type'] ?? '') !== '') {
+            if (!\App\Domain\Enum\MaintenanceType::tryFrom($filters['maintenance_type'])) { throw new \InvalidArgumentException('Selecione um tipo de manutenção válido.'); }
+            $query->where(['ServiceRequests.maintenance_type' => $filters['maintenance_type']]);
+        }
+        if (($filters['department_id'] ?? '') !== '') {
+            if ($filters['department_id'] === 'UNSPECIFIED') {
+                $query->matching('Users', fn($q) => $q->where(['Users.department_id IS' => null]));
+            } elseif (ctype_digit($filters['department_id'])) {
+                $query->matching('Users', fn($q) => $q->where(['Users.department_id' => (int)$filters['department_id']]));
+            } else { throw new \InvalidArgumentException('Selecione um setor do solicitante válido.'); }
+        }
+        if (trim($filters['totvs_os_number'] ?? '') !== '') {
+            $number = trim($filters['totvs_os_number']);
+            if (mb_strlen($number) > 100) { throw new \InvalidArgumentException('Use até 100 caracteres no número da O.S.'); }
+            $query->where(['btrim(ServiceRequests.totvs_os_number)' => $number]);
+        }
         if (($filters['flow'] ?? '') !== '') {
             if (!\App\Domain\Enum\RequestFlow::tryFrom($filters['flow'])) { throw new \InvalidArgumentException('Selecione um tipo de solicitação válido.'); }
             $query->where(['ServiceRequests.flow' => $filters['flow']]);

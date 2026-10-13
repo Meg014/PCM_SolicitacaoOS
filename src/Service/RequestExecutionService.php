@@ -25,8 +25,7 @@ final class RequestExecutionService
             }
             $request = $requests->find()->where(['ServiceRequests.id' => $id])->where(RequestAccess::conditions($actor->role, $actorId))->first();
             if (!$request) { throw new NotFoundException('Solicitação não encontrada.'); }
-            if ($request->flow !== RequestFlow::ACOMPANHAMENTO->value || !$request->totvs_os_number ||
-                !in_array($request->status, [RequestStatus::OS_ABERTA->value, RequestStatus::EM_EXECUCAO->value], true)) {
+            if (!RequestAccess::canAppend($request)) {
                 throw new ConflictException('O acompanhamento fica disponível após o vínculo da O.S. e até a conclusão do serviço.');
             }
             $old = $request->status;
@@ -44,6 +43,9 @@ final class RequestExecutionService
                     $values['items'][] = RequestItemPreparation::snapshot($item);
                 }
                 $request->set('status', RequestStatus::EM_EXECUCAO->value);
+                $request->set('last_activity_at', $now);
+                $request->set('last_item_at', $now);
+                $values['last_activity_at'] = $now->format(DATE_ATOM);
                 $event = 'EXECUTION_ITEMS_ADDED';
             } elseif ($action === 'ongoing') {
                 $request->set('status', RequestStatus::EM_EXECUCAO->value);
@@ -54,13 +56,15 @@ final class RequestExecutionService
                 $event = 'SERVICE_COMPLETED';
                 $values += ['completed_by' => $actorId, 'completed_at' => $now->format(DATE_ATOM)];
             } else { throw new \InvalidArgumentException('Ação inválida.'); }
+            $request->set('last_activity_at', $now);
+            $values['last_activity_at'] = $now->format(DATE_ATOM);
             $requests->saveOrFail($request);
             $audits = $tables->get('RequestAudits');
             $audits->saveOrFail($audits->newEntity(['request_id' => $id, 'user_id' => $actorId, 'action' => $event,
-                'new_values' => $values + ['status' => $request->status], 'created_at' => $now]));
+                'old_values' => ['status' => $old], 'new_values' => $values + ['status' => $request->status], 'created_at' => $now]));
             if ($oldDisposition !== $request->os_disposition) {
                 $audits->saveOrFail($audits->newEntity(['request_id' => $id, 'user_id' => $actorId, 'action' => 'OS_DISPOSITION_CHANGED',
-                    'old_values' => ['os_disposition' => $oldDisposition], 'new_values' => ['os_disposition' => $request->os_disposition], 'created_at' => $now]));
+                    'old_values' => ['os_disposition' => $oldDisposition, 'status' => $old], 'new_values' => ['os_disposition' => $request->os_disposition, 'status' => $request->status], 'created_at' => $now]));
             }
             if ($old !== $request->status) {
                 $audits->saveOrFail($audits->newEntity(['request_id' => $id, 'user_id' => $actorId, 'action' => 'STATUS_CHANGED',

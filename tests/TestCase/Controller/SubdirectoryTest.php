@@ -82,7 +82,10 @@ class SubdirectoryTest extends TestCase
         $this->assertResponseContains('action="' . self::BASE . '/solicitacoes/1/vincular-os"');
         $this->assertSame(self::BASE . '/fotos/1', Router::url(['controller' => 'Attachments', 'action' => 'view', 1]));
         $this->get($this->url('/painel')); $this->assertResponseOk();
-        $this->assertResponseContains('href="' . self::BASE . '/painel"');
+        $this->assertResponseContains('data-refresh-url="' . self::BASE . '/painel/atualizacao"');
+        $this->assertResponseContains(self::BASE . '/js/pcm-queue.js');
+        $this->get($this->url('/painel/atualizacao')); $this->assertResponseOk();
+        $this->assertResponseContains('href="' . self::BASE . '/solicitacoes/1"');
     }
 
     public function testBootstrapFromEnvironmentGeneratesSinglePrefixAndSupportsLocalFalse(): void
@@ -102,7 +105,8 @@ $request = \Cake\Http\ServerRequestFactory::fromGlobals([
 \Cake\Routing\Router::setRequest($request);
 echo json_encode(['baseUrl' => \Cake\Core\Configure::read('App.baseUrl'), 'base' => $request->getAttribute('base'),
     'webroot' => $request->getAttribute('webroot'), 'path' => $request->getUri()->getPath(),
-    'url' => \Cake\Routing\Router::url(['controller' => 'Home', 'action' => 'login'], true)], JSON_THROW_ON_ERROR);
+    'url' => \Cake\Routing\Router::url(['controller' => 'Home', 'action' => 'login'], true),
+    'sessionSecure' => \Cake\Core\Configure::read('Session.ini')['session.cookie_secure']], JSON_THROW_ON_ERROR);
 PHP;
         foreach ([self::BASE, '', 'false'] as $base) {
             $full = 'https://pcm.biolasa.com.br' . ($base === self::BASE ? $base : '');
@@ -119,6 +123,7 @@ PHP;
             $this->assertSame($expected ?: false, $values['baseUrl']);
             $this->assertSame($expected, $values['base']); $this->assertSame($expected . '/', $values['webroot']);
             $this->assertSame('/entrar', $values['path']); $this->assertSame($full . '/entrar', $values['url']);
+            $this->assertTrue($values['sessionSecure']);
         }
     }
 }

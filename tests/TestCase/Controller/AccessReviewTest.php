@@ -12,7 +12,7 @@ class AccessReviewTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
+    protected array $fixtures = ['app.UserDepartments', 'app.Users', 'app.Sectors', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
 
     private function users(): \Cake\ORM\Table
     {
@@ -43,7 +43,7 @@ class AccessReviewTest extends TestCase
             $this->assertRedirect('/alterar-senha');
         }
         $this->enableCsrfToken('pcm_solicitacao_os_csrf');
-        $this->post('/solicitacoes/1/assumir');
+        $this->post('/solicitacoes/1/vincular-os');
         $this->assertRedirect('/alterar-senha');
         $this->get('/alterar-senha');
         $this->assertResponseOk();
@@ -115,7 +115,7 @@ class AccessReviewTest extends TestCase
     {
         $this->session(['Auth' => 1]);
         $this->enableCsrfToken('pcm_solicitacao_os_csrf');
-        $this->post('/usuarios/2/editar', ['password' => str_repeat('a', 150), 'must_change_password' => false]);
+        $this->post('/usuarios/2/editar', ['department_id' => 1, 'password' => str_repeat('a', 150), 'must_change_password' => false]);
         $this->assertRedirect('/usuarios');
         $this->assertTrue($this->users()->get(2)->must_change_password);
     }

@@ -1,5 +1,5 @@
 <?php $this->assign('title', $request->number); ?>
-<h1><?= h($request->number) ?></h1>
+<h1><?= h($request->number) ?></h1><?= $this->element('request_activity', ['request' => $request]) ?>
 <?php if ($request->flow === \App\Domain\Enum\RequestFlow::ACOMPANHAMENTO->value && in_array($request->status, [\App\Domain\Enum\RequestStatus::OS_ABERTA->value, \App\Domain\Enum\RequestStatus::EM_EXECUCAO->value], true)): ?>
 <div class="actions execution-shortcuts">
 <?= $this->Html->link('Adicionar apontamento / continuar serviço', '#execution', ['class' => 'button']) ?>
@@ -17,7 +17,6 @@
     <dt>Mão de obra</dt><dd><?= h($request->sector->name) ?></dd>
     <dt>Tipo de manutenção</dt><dd><?= h(\App\Domain\Enum\MaintenanceType::from($request->maintenance_type)->label()) ?></dd>
     <?php if ($request->totvs_os_number): ?><dt>O.S. TOTVS</dt><dd><?= h($request->totvs_os_number) ?></dd><?php endif; ?>
-    <?php if ($request->assigned_at): ?><dt>Assumida por</dt><dd><?= h($request->assigned_user->name) ?> · <?= h($request->assigned_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')) ?></dd><?php endif; ?>
     <?php if ($request->os_linked_at): ?><dt>O.S. vinculada por</dt><dd><?= h($request->linked_user->name) ?> · <?= h($request->os_linked_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')) ?></dd><?php endif; ?>
     <?php if ($request->cancelled_at): ?><dt>Cancelada por</dt><dd><?= h($request->cancelled_user->name) ?> · <?= h($request->cancelled_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')) ?></dd><dt>Motivo</dt><dd class="preserve-lines"><?= h($request->cancellation_reason) ?></dd><?php endif; ?>
 </dl>
@@ -29,13 +28,7 @@ $pending = in_array($request->status, [\App\Domain\Enum\RequestStatus::AGUARDAND
 <section class="handling" aria-labelledby="handling-title">
 <h2 id="handling-title">Ações do PCM</h2>
 <?= $this->element('os_disposition', ['request' => $request]) ?>
-<p class="help"><?= $request->status === \App\Domain\Enum\RequestStatus::AGUARDANDO_PCM->value ? 'Aguardando análise: assuma o pedido ou registre o resultado do atendimento.' : 'Em análise: vincule a Ordem de Serviço criada ou cancele com motivo.' ?></p>
-<?php if ($request->status === \App\Domain\Enum\RequestStatus::AGUARDANDO_PCM->value): ?>
-<h3>Assumir atendimento</h3>
-<?= $this->Form->create(null, ['url' => ['action' => 'assign', $request->id, '_method' => 'POST']]) ?>
-<?= $this->Form->button('Assumir solicitação') ?>
-<?= $this->Form->end() ?>
-<?php endif; ?>
+<p class="help">Vincule a Ordem de Serviço criada no TOTVS ou cancele o pedido com um motivo.</p>
 <h3>Vincular Ordem de Serviço</h3>
 <?= $this->Form->create(null, ['url' => ['action' => 'link', $request->id, '_method' => 'POST']]) ?>
 <?= $this->Form->control('totvs_os_number', ['label' => 'Número da O.S. TOTVS', 'required' => true, 'maxlength' => 100]) ?>
@@ -100,21 +93,24 @@ $pending = in_array($request->status, [\App\Domain\Enum\RequestStatus::AGUARDAND
 <?php foreach ($request->request_audits as $audit): ?>
     <?php
     $event = match ($audit->action) {
-        'REQUEST_CREATED' => 'Solicitação enviada.', 'REQUEST_ASSIGNED' => 'Solicitação assumida.',
-        'TOTVS_OS_LINKED' => 'O.S. TOTVS vinculada: ' . ($audit->new_values['totvs_os_number'] ?? ''),
-        'REQUEST_CANCELLED' => 'Solicitação cancelada: ' . ($audit->new_values['cancellation_reason'] ?? ''),
-        'ATTACHMENT_ADDED' => 'Foto anexada: ' . ($audit->new_values['name'] ?? ''),
-        'EXECUTION_ITEMS_ADDED' => 'Apontamentos de execução registrados.',
-        'SERVICE_ONGOING' => 'Serviço continua em andamento.',
-        'SERVICE_COMPLETED' => 'Serviço concluído. Encerramento solicitado ao PCM.',
-        'TOTVS_OS_CLOSED' => 'PCM confirmou o encerramento da Ordem de Serviço no TOTVS.',
+        'REQUEST_CREATED' => 'criou a solicitação.', 'REQUEST_ASSIGNED' => 'registrou o atendimento (fluxo anterior).',
+        'TOTVS_OS_LINKED' => 'vinculou a O.S. TOTVS: ' . ($audit->new_values['totvs_os_number'] ?? ''),
+        'REQUEST_CANCELLED' => 'cancelou a solicitação: ' . ($audit->new_values['cancellation_reason'] ?? ''),
+        'ATTACHMENT_ADDED' => 'adicionou uma foto: ' . ($audit->new_values['name'] ?? ''),
+        'EXECUTION_ITEMS_ADDED' => 'adicionou apontamentos de execução.',
+        'SERVICE_ONGOING' => 'informou que o serviço continua em andamento.',
+        'SERVICE_COMPLETED' => 'informou que o serviço foi concluído e solicitou o encerramento ao PCM.',
+        'TOTVS_OS_CLOSED' => 'confirmou o encerramento da Ordem de Serviço no TOTVS.',
+        'PCM_FLOW_SIMPLIFIED' => 'retornou o pedido à fila do PCM após a simplificação do atendimento.',
         'DUPLICATE_CONFIRMED' => 'Novo pedido confirmado apesar de solicitações ativas para o equipamento. ' . ($audit->new_values['reason'] ?? ''),
         'OS_DISPOSITION_CHANGED' => 'Orientação atualizada: ' . \App\Domain\Enum\OsDisposition::from($audit->new_values['os_disposition'])->heading() . '.',
         'STATUS_CHANGED' => 'Situação alterada para ' . \App\Domain\Enum\RequestStatus::from($audit->new_values['status'])->label() . '.',
         default => 'Solicitação atualizada.',
     };
     ?>
-    <li><?= h($audit->created_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')) ?> — <?= h($event) ?> · <?= h($audit->user?->name ?? 'Sistema') ?>
+    <li><?= h($audit->created_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')) ?> — <?= h($audit->actor_snapshot['name'] ?? $audit->user?->name ?? 'Sistema') ?> <?= h($event) ?>
+    <?php if (!empty($audit->actor_snapshot['username'])): ?><p class="help">Usuário: <?= h($audit->actor_snapshot['username']) ?></p><?php endif; ?>
+    <?php if (!$audit->actor_snapshot && $audit->user_id): ?><p class="help">Registro anterior: identidade exibida pelo cadastro atual.</p><?php endif; ?>
     <?php if ($audit->action === 'REQUEST_CREATED' && !empty($audit->new_values['os_disposition'])): ?>
     <p><?= h(\App\Domain\Enum\OsDisposition::from($audit->new_values['os_disposition'])->heading()) ?></p>
     <?php endif; ?>
@@ -128,7 +124,7 @@ $pending = in_array($request->status, [\App\Domain\Enum\RequestStatus::AGUARDAND
     <?php endforeach; ?>
     </ul>
     <?php endif; ?>
-    <?php if ($isPcm): ?><details><summary>Ver registro de auditoria</summary><pre><?= h(json_encode(['antes' => $audit->old_values, 'depois' => $audit->new_values], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) ?></pre></details><?php endif; ?>
+    <?php if ($isPcm): ?><details><summary>Ver registro de auditoria</summary><pre><?= h(json_encode(['usuário' => $audit->actor_snapshot, 'situação anterior' => $audit->old_status, 'situação nova' => $audit->new_status, 'antes' => $audit->old_values, 'depois' => $audit->new_values], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) ?></pre></details><?php endif; ?>
     </li>
 <?php endforeach; ?>
 </ol>

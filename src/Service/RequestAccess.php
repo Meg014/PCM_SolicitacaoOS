@@ -8,6 +8,12 @@ use App\Domain\Enum\UserRole;
 
 final class RequestAccess
 {
+    public static function canAppend(\App\Model\Entity\ServiceRequest $request): bool
+    {
+        return $request->flow === RequestFlow::ACOMPANHAMENTO->value && $request->totvs_os_number &&
+            in_array($request->status, [\App\Domain\Enum\RequestStatus::OS_ABERTA->value, \App\Domain\Enum\RequestStatus::EM_EXECUCAO->value], true);
+    }
+
     public static function conditions(string $role, int $userId): array
     {
         $profile = UserRole::tryFrom($role);

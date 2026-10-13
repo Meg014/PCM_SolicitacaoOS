@@ -17,11 +17,13 @@ return function (RouteBuilder $routes): void {
         $builder->connect('/fotos/{id}', ['controller' => 'Attachments', 'action' => 'view'])->setPatterns(['id' => '[0-9]+'])->setPass(['id'])->setMethods(['GET']);
         $builder->connect('/indicadores', ['controller' => 'Reports', 'action' => 'indicators'])->setMethods(['GET']);
         $builder->connect('/relatorios', ['controller' => 'Reports', 'action' => 'index'])->setMethods(['GET']);
-        foreach (['assumir' => 'assign', 'vincular-os' => 'link', 'cancelar' => 'cancel', 'confirmar-encerramento' => 'close', 'apontamentos' => 'items', 'em-andamento' => 'ongoing', 'concluir-servico' => 'complete'] as $path => $action) {
+        foreach (['vincular-os' => 'link', 'cancelar' => 'cancel', 'confirmar-encerramento' => 'close', 'apontamentos' => 'items', 'em-andamento' => 'ongoing', 'concluir-servico' => 'complete'] as $path => $action) {
             $builder->connect('/solicitacoes/{id}/' . $path, ['controller' => 'Requests', 'action' => $action])
                 ->setPatterns(['id' => '[0-9]+'])->setPass(['id'])->setMethods(['POST']);
         }
+        $builder->connect('/solicitacoes/{id}/novo-apontamento', ['controller' => 'Requests', 'action' => 'addItem'])->setPatterns(['id' => '[0-9]+'])->setPass(['id'])->setMethods(['GET', 'POST']);
         $builder->connect('/api/bens', ['controller' => 'Lookups', 'action' => 'assets'])->setMethods(['GET']);
+        $builder->connect('/painel/atualizacao', ['controller' => 'Dashboard', 'action' => 'refresh'])->setMethods(['GET']);
         $builder->connect('/api/solicitacoes-ativas', ['controller' => 'Lookups', 'action' => 'active'])->setMethods(['GET']);
         $builder->connect('/acompanhamento', ['controller' => 'Requests', 'action' => 'work'])->setMethods(['GET']);
         $builder->connect('/api/setores', ['controller' => 'Lookups', 'action' => 'sectors'])->setMethods(['GET']);
@@ -29,7 +31,7 @@ return function (RouteBuilder $routes): void {
         $builder->connect('/solicitacoes/nova', ['controller' => 'Requests', 'action' => 'add'])->setMethods(['GET', 'POST']);
         $builder->connect('/solicitacoes/{id}', ['controller' => 'Requests', 'action' => 'view'])
             ->setPatterns(['id' => '[0-9]+'])->setPass(['id'])->setMethods(['GET']);
-        foreach (['usuarios' => 'Users', 'setores' => 'Sectors'] as $path => $controller) {
+        foreach (['usuarios' => 'Users', 'setores' => 'Sectors', 'setores-usuarios' => 'UserDepartments'] as $path => $controller) {
             $builder->connect('/' . $path, ['controller' => $controller, 'action' => 'index'])->setMethods(['GET']);
             $builder->connect('/' . $path . '/novo', ['controller' => $controller, 'action' => 'add'])->setMethods(['GET', 'POST']);
             $builder->connect('/' . $path . '/{id}/editar', ['controller' => $controller, 'action' => 'edit'])

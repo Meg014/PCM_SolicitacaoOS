@@ -133,13 +133,14 @@ No ambiente local, mantenha APP_BASE_URL vazio ou false.
 O comando específico é: php bin/cake.php create_admin
 
 Defina APP_ENV=production e forneça somente no processo CLI as variáveis temporárias
-BOOTSTRAP_ADMIN_NAME e BOOTSTRAP_ADMIN_PASSWORD. Informe também
+BOOTSTRAP_ADMIN_NAME, BOOTSTRAP_ADMIN_DEPARTMENT (nome do setor) e BOOTSTRAP_ADMIN_PASSWORD. Informe também
 BOOTSTRAP_ADMIN_USERNAME ou BOOTSTRAP_ADMIN_EMAIL, ou ambos. Não coloque a senha na linha de comando,
 no repositório ou no histórico do terminal. Não use DevelopmentAdminSeed em produção.
 
 Exemplo PowerShell (solicita os dados e limpa as variáveis temporárias ao terminar):
 
     $env:BOOTSTRAP_ADMIN_NAME = Read-Host 'Nome do administrador'
+    $env:BOOTSTRAP_ADMIN_DEPARTMENT = Read-Host 'Setor do administrador'
     $env:BOOTSTRAP_ADMIN_USERNAME = Read-Host 'Usuário / matrícula (opcional se houver e-mail)'
     $env:BOOTSTRAP_ADMIN_EMAIL = Read-Host 'E-mail (obrigatório se não houver usuário)'
     $bootstrapSecret = Read-Host 'Senha inicial' -AsSecureString
@@ -147,7 +148,7 @@ Exemplo PowerShell (solicita os dados e limpa as variáveis temporárias ao term
         $env:BOOTSTRAP_ADMIN_PASSWORD = [System.Net.NetworkCredential]::new('', $bootstrapSecret).Password
         php bin/cake.php create_admin
     } finally {
-        foreach ($key in @('BOOTSTRAP_ADMIN_NAME', 'BOOTSTRAP_ADMIN_USERNAME', 'BOOTSTRAP_ADMIN_EMAIL', 'BOOTSTRAP_ADMIN_PASSWORD')) {
+        foreach ($key in @('BOOTSTRAP_ADMIN_NAME', 'BOOTSTRAP_ADMIN_DEPARTMENT', 'BOOTSTRAP_ADMIN_USERNAME', 'BOOTSTRAP_ADMIN_EMAIL', 'BOOTSTRAP_ADMIN_PASSWORD')) {
             [Environment]::SetEnvironmentVariable($key, $null, 'Process')
         }
         $bootstrapSecret.Dispose()
@@ -158,3 +159,52 @@ senha e registra auditoria sem senha/hash. Verificação e criação são atômi
 Qualquer ADMIN_PCM existente, mesmo inativo, impede nova criação; o comando não
 redefine senhas nem reativa contas. Fora de produção, a execução exige a opção
 explícita --confirm-non-production.
+
+## Homologação — apontamentos existentes e setores de usuários
+Execute `php bin/cake.php migrations migrate` para aplicar AddUserDepartments e AddRequestActivity.
+O PCM cadastra os departamentos em Administração → Setores dos usuários, separados de Mãos de obra.
+Novos usuários e alterações administrativas exigem um setor ativo. Usuários antigos ficam sem
+atribuição presumida e continuam acessando/trocando senha; regularize-os pela edição do cadastro.
+O primeiro administrador informa BOOTSTRAP_ADMIN_DEPARTMENT: o comando reutiliza o setor ou o cria
+com auditoria na mesma transação. O seed de desenvolvimento exige ADMIN_SEED_DEPARTMENT.
+
+O alerta do Bem oferece “Fazer apontamento nesta O.S.” quando o trabalho compartilhado tem O.S.
+vinculada e aceita execução. A tela solicita apenas os dados do apontamento; preserva o pedido e
+registra usuário, horário e last_activity_at. Na fila, encerramento pendente, aguardando PCM e
+análise conservam prioridade; O.S. aberta/execução formam uma fila por atividade mais recente.
+Trabalhos finalizados continuam abaixo. Não há escrita no TOTVS.
+
+## Simplificação operacional do PCM
+Execute `php bin/cake.php migrations migrate` para aplicar SimplifyPcmAndAudit,
+depois `php bin/cake.php cache clear_all` para atualizar os metadados das tabelas.
+A migration verifica vínculos de O.S. duplicados antes de alterar a estrutura e
+interrompe indicando as solicitações envolvidas, sem corrigir os vínculos automaticamente.
+O índice único considera o número sem espaços externos e permite múltiplos NULL.
+
+Não há mais ação de assumir. Pedidos antigos em análise retornam para Aguardando PCM
+com evento de histórico; responsável e horário antigos permanecem no banco, sem controlar o fluxo.
+O PCM vincula a O.S. diretamente, cancela com motivo ou confirma encerramento.
+
+Novos eventos guardam actor_snapshot (ID, nome, usuário/matrícula, e-mail e perfil),
+old_status, new_status e data/hora, além dos detalhes existentes. A linha do tempo usa
+o nome histórico; e-mail fica nos detalhes de auditoria exclusivos do PCM. Registros
+antigos sem snapshot são identificados como legado; não se presume sua identidade histórica.
+
+/painel apresenta apenas estados ativos, sem filtros e sem contadores de finalizadas.
+Encerramento pendente e Aguardando PCM têm prioridade; a execução considera atividade
+recente. Criação, apontamento e transições atualizam last_activity_at. last_item_at
+mantém o destaque de apontamento correto mesmo após outras ações.
+/relatorios concentra filtros, incluindo tipo de manutenção, número da O.S. e setor
+atual do solicitante. /minhas-solicitacoes mantém o histórico pessoal completo.
+
+Polling autenticado a cada 30 segundos atualiza somente contadores/fila, até 20 registros
+por página. Mantém página, rolagem e foco; não interrompe entrada de dados nem seleção de texto,
+pausa em aba oculta e informa falhas discretamente. Permissões e primeiro acesso são revalidados.
+
+Sessão usa arquivos isolados em tmp/sessions, com timeout=0 e GC automático desativado.
+Não limpar essa pasta durante publicações nem sujeitá-la à limpeza de sessões compartilhadas
+do PHP/sistema operacional. Permita leitura/escrita somente à conta do processo PHP.
+Cookies são HttpOnly, SameSite=Lax e Secure em HTTPS (inclusive CSRF); configure
+APP_FULL_BASE_URL com HTTPS na produção. Cookie de sessão permanece válido até fechar o
+navegador; logout manual e bloqueio de contas continuam funcionando. Mudança do nome/caminho
+do cookie nesta atualização pode exigir um novo login na primeira utilização.

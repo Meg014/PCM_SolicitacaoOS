@@ -46,7 +46,7 @@ class HandlingTest extends TestCase
     {
         foreach ([2, 3] as $id) {
             $this->session(['Auth' => $id]);
-            foreach (['assumir' => [], 'vincular-os' => ['totvs_os_number' => '123'], 'cancelar' => ['reason' => 'Recusada']] as $action => $data) {
+            foreach (['vincular-os' => ['totvs_os_number' => '123'], 'cancelar' => ['reason' => 'Recusada']] as $action => $data) {
                 $this->postAction($action, $data);
                 $this->assertResponseCode(403);
             }
@@ -55,14 +55,9 @@ class HandlingTest extends TestCase
         $this->assertSame(0, TableRegistry::getTableLocator()->get('RequestAudits')->find()->count());
     }
 
-    public function testAssignAndLinkAreAuditedAndVisibleToOwner(): void
+    public function testDirectLinkIsAuditedAndVisibleToOwner(): void
     {
         $this->session(['Auth' => 1]);
-        $this->postAction('assumir', ['assigned_to' => 2]);
-        $this->assertRedirect('/solicitacoes/1');
-        $this->assertSame(RequestStatus::EM_ANALISE->value, $this->record()->status);
-        $this->assertSame(1, $this->record()->assigned_to);
-        $this->assertNotNull($this->record()->assigned_at);
         $this->postAction('vincular-os', ['totvs_os_number' => ' 000123 ']);
         $this->assertRedirect('/solicitacoes/1');
         $this->assertSame('000123', $this->record()->totvs_os_number);
@@ -70,13 +65,14 @@ class HandlingTest extends TestCase
         $this->assertSame(1, $this->record()->os_linked_by);
         $this->assertNotNull($this->record()->os_linked_at);
         $audits = TableRegistry::getTableLocator()->get('RequestAudits')->find()->orderBy(['id' => 'ASC'])->all()->toList();
-        $this->assertSame(['REQUEST_ASSIGNED', 'STATUS_CHANGED', 'TOTVS_OS_LINKED', 'STATUS_CHANGED'], array_column($audits, 'action'));
-        $this->assertSame(RequestStatus::EM_ANALISE->value, $audits[2]->old_values['status']);
+        $this->assertSame(['TOTVS_OS_LINKED', 'STATUS_CHANGED'], array_column($audits, 'action'));
+        $this->assertSame(RequestStatus::AGUARDANDO_PCM->value, $audits[0]->old_values['status']);
+        $this->assertNull($this->record()->assigned_to);
         $this->session(['Auth' => 3]);
         $this->get('/solicitacoes/1');
         $this->assertResponseOk();
         $this->assertResponseContains('000123');
-        $this->assertResponseContains('O.S. TOTVS vinculada');
+        $this->assertResponseContains('vinculou a O.S. TOTVS');
         $this->assertResponseNotContains('Vincular O.S. TOTVS');
         $this->assertResponseNotContains('Ver registro de auditoria');
         $this->get('/solicitacoes/2');
@@ -117,18 +113,15 @@ class HandlingTest extends TestCase
     public function testRepeatedOrTerminalActionsDoNotOverwrite(): void
     {
         $this->session(['Auth' => 1]);
-        $this->postAction('assumir');
-        $this->postAction('assumir');
-        $this->assertSame(2, TableRegistry::getTableLocator()->get('RequestAudits')->find()->count());
         $this->postAction('vincular-os', ['totvs_os_number' => '123']);
         $this->postAction('vincular-os', ['totvs_os_number' => '456']);
         $this->postAction('cancelar', ['reason' => 'Tentativa']);
         $this->assertSame('123', $this->record()->totvs_os_number);
         $this->assertSame(RequestStatus::ATENDIDA->value, $this->record()->status);
-        $this->assertSame(4, TableRegistry::getTableLocator()->get('RequestAudits')->find()->count());
+        $this->assertSame(2, TableRegistry::getTableLocator()->get('RequestAudits')->find()->count());
     }
 
-    public function testDashboardFiltersAndNewestFirst(): void
+    public function testDashboardNewestFirstAndFiltersOnlyInReports(): void
     {
         $table = TableRegistry::getTableLocator()->get('ServiceRequests');
         $table->updateAll(['created_at' => '2026-10-06 03:00:00'], ['id' => 2]);
@@ -140,22 +133,23 @@ class HandlingTest extends TestCase
         $this->assertResponseContains('class="button secondary"');
         $body = (string)$this->_response->getBody();
         $this->assertLessThan(strpos($body, 'SOL-2026-000002'), strpos($body, 'SOL-2026-000001'));
-        $this->get('/painel?sector_id=1&start=2026-10-07&end=2026-10-07');
+        $this->assertResponseNotContains('Filtrar solicitações');
+        $this->get('/relatorios?sector_id=1&start=2026-10-07&end=2026-10-07');
         $this->assertResponseOk();
         $this->assertResponseContains('SOL-2026-000001');
         $this->assertResponseNotContains('SOL-2026-000002');
-        $this->get('/painel?status=' . RequestStatus::CANCELADA->value);
+        $this->get('/relatorios?status=' . RequestStatus::CANCELADA->value);
         $this->assertResponseNotContains('SOL-2026-000001');
-        $this->get('/painel?start=2026-02-30');
+        $this->get('/relatorios?start=2026-02-30');
         $this->assertResponseContains('Informe datas válidas');
     }
 
     public function testCsrfAndGetCannotMutate(): void
     {
         $this->session(['Auth' => 1]);
-        $this->post('/solicitacoes/1/assumir');
+        $this->post('/solicitacoes/1/vincular-os');
         $this->assertResponseCode(403);
-        $this->get('/solicitacoes/1/assumir');
+        $this->get('/solicitacoes/1/vincular-os');
         $this->assertResponseCode(404);
         $this->assertSame(RequestStatus::AGUARDANDO_PCM->value, $this->record()->status);
     }
@@ -165,7 +159,7 @@ class HandlingTest extends TestCase
         $audits = TableRegistry::getTableLocator()->get('RequestAudits');
         $audits->getValidator()->add('action', 'reject', ['rule' => fn() => false]);
         try {
-            (new RequestHandlingService())->handle(1, 1, 'assign');
+            (new RequestHandlingService())->handle(1, 1, 'link', 'ROLLBACK-OS');
             $this->fail('A falha de auditoria deve impedir a alteração.');
         } catch (\Cake\ORM\Exception\PersistenceFailedException $e) {
             $this->assertSame(RequestStatus::AGUARDANDO_PCM->value, $this->record()->status);
@@ -186,7 +180,7 @@ class HandlingTest extends TestCase
             'cancelled_at' => '2026-10-07 12:12:00', 'cancellation_reason' => 'Duplicada',
         ], ['id' => 2]);
         $this->session(['Auth' => 1]);
-        foreach (['/painel', '/relatorios', '/solicitacoes/1'] as $url) {
+        foreach (['/relatorios', '/solicitacoes/1'] as $url) {
             $this->get($url);
             $this->assertResponseOk();
             $this->assertResponseContains('Tempo de atendimento');

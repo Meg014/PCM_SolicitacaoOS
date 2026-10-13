@@ -8,6 +8,7 @@ $text = fn($v) => is_scalar($v) ? (string)$v : '';
 <div id="request-items">
 <?php foreach ($rows as $index => $row): $row = is_array($row) ? $row : []; ?>
 <div class="request-item"><h3 class="item-title">Apontamento <?= $index + 1 ?></h3>
+<input type="hidden" name="items[<?= $index ?>][_added]" data-included value="<?= ($row['_added'] ?? '') === '1' ? '1' : '' ?>">
 <div class="item-fields">
 <?php foreach (['executor' => ['Executante', 'text'], 'service_date' => ['Data do serviço', 'date'], 'start_time' => ['Hora inicial', 'time'], 'end_time' => ['Hora final', 'time']] as $field => [$label, $type]): ?>
 <div><label for="item-<?= $index ?>-<?= h($field) ?>"><?= h($label) ?></label><input id="item-<?= $index ?>-<?= h($field) ?>" name="items[<?= $index ?>][<?= h($field) ?>]" type="<?= h($type) ?>" value="<?= h($text($row[$field] ?? '')) ?>" data-item-field="<?= h($field) ?>" required <?= $field === 'executor' ? 'maxlength="150"' : '' ?>></div>

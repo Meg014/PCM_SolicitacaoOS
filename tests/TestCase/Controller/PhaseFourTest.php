@@ -84,6 +84,12 @@ class PhaseFourTest extends TestCase
             $this->assertSame(3, $photo->user_id);
         }
         $this->assertSame(2, TableRegistry::getTableLocator()->get('RequestAudits')->find()->where(['action' => 'ATTACHMENT_ADDED'])->count());
+        foreach (TableRegistry::getTableLocator()->get('RequestAudits')->find()->where(['action' => 'ATTACHMENT_ADDED']) as $audit) {
+            $this->assertSame(3, $audit->actor_snapshot['id']);
+            $this->assertSame('user3', $audit->actor_snapshot['username']);
+            $this->assertSame('AGUARDANDO_PCM', $audit->old_status);
+            $this->assertSame('AGUARDANDO_PCM', $audit->new_status);
+        }
     }
 
     public function testInvalidExtensionMimeSizeAndFileCountAreRejected(): void
@@ -135,8 +141,8 @@ class PhaseFourTest extends TestCase
         $this->get('/solicitacoes/' . $request->id);
         $this->assertResponseOk();
         $this->assertResponseContains('class="timeline"');
-        $this->assertResponseContains('Solicitação enviada.');
-        $this->assertResponseContains('Foto anexada: foto.png');
+        $this->assertResponseContains('criou a solicitação.');
+        $this->assertResponseContains('adicionou uma foto: foto.png');
         $this->assertResponseNotContains('ATTACHMENT_ADDED');
     }
 

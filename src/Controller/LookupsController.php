@@ -71,6 +71,7 @@ class LookupsController extends AppController
             $rows[] = ['number' => $request->number, 'os' => $request->totvs_os_number, 'labor' => $request->sector->name,
                 'created' => $request->created_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i'),
                 'requester' => $request->user->name, 'status' => \App\Domain\Enum\RequestStatus::from($request->status)->label(),
+                'add_item_url' => $visible && \App\Service\RequestAccess::canAppend($request) ? \Cake\Routing\Router::url(['controller' => 'Requests', 'action' => 'addItem', $request->id]) : null,
                 'description' => $request->description, 'url' => $visible ? \Cake\Routing\Router::url(['controller' => 'Requests', 'action' => 'view', $request->id]) : null];
         }
         return $this->json(['results' => $rows]);

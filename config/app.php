@@ -432,7 +432,18 @@ return [
      * To use database sessions, load the SQL file located at config/schema/sessions.sql
      */
     'Session' => [
-        'defaults' => 'php',
+        'defaults' => 'cake',
+        'cookie' => 'pcm_solicitacao_os_session',
+        'timeout' => 0,
+        'ini' => [
+            'session.gc_probability' => 0,
+            'session.gc_maxlifetime' => 2147483647,
+            'session.cookie_lifetime' => 0,
+            'session.cookie_httponly' => 1,
+            'session.cookie_samesite' => 'Lax',
+            'session.cookie_secure' => str_starts_with((string)env('APP_FULL_BASE_URL', ''), 'https://') || (env('HTTPS') && env('HTTPS') !== 'off'),
+            'session.use_strict_mode' => 1,
+        ],
     ],
 
     /**

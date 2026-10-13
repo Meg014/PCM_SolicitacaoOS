@@ -11,7 +11,7 @@ class CreateAdminCommandTest extends TestCase
 {
     use ConsoleIntegrationTestTrait;
 
-    protected array $fixtures = ['app.Users', 'app.RegistrationAudits'];
+    protected array $fixtures = ['app.UserDepartments', 'app.Users', 'app.RegistrationAudits'];
     private array $previous = [];
 
     public function setUp(): void
@@ -19,7 +19,7 @@ class CreateAdminCommandTest extends TestCase
         parent::setUp();
         foreach (['APP_ENV' => 'production', 'BOOTSTRAP_ADMIN_NAME' => 'Administrador de teste',
             'BOOTSTRAP_ADMIN_USERNAME' => 'bootstrap.teste', 'BOOTSTRAP_ADMIN_EMAIL' => '',
-            'BOOTSTRAP_ADMIN_PASSWORD' => 'BootstrapTeste123!'] as $key => $value) {
+            'BOOTSTRAP_ADMIN_PASSWORD' => 'BootstrapTeste123!', 'BOOTSTRAP_ADMIN_DEPARTMENT' => 'PCM teste'] as $key => $value) {
             $this->previous[$key] = $_SERVER[$key] ?? null;
             $_SERVER[$key] = $value;
         }
@@ -127,5 +127,19 @@ class CreateAdminCommandTest extends TestCase
         $this->exec('create_admin'); $this->assertExitError();
         $this->assertSame(4, $this->users()->find()->count());
         $this->assertSame(0, TableRegistry::getTableLocator()->get('RegistrationAudits')->find()->count());
+    }
+
+    public function testDepartmentRequiredAndNewDepartmentCreationIsAudited(): void
+    {
+        $this->withoutAdmin(); $_SERVER['BOOTSTRAP_ADMIN_DEPARTMENT'] = '';
+        $this->exec('create_admin'); $this->assertExitError();
+        $this->assertSame(4, $this->users()->find()->count());
+        $this->users()->getConnection()->execute("SELECT setval(pg_get_serial_sequence('user_departments', 'id'), (SELECT MAX(id) FROM user_departments))");
+        $_SERVER['BOOTSTRAP_ADMIN_DEPARTMENT'] = 'Setor informado pelo operador';
+        $this->exec('create_admin'); $this->assertExitSuccess();
+        $department = TableRegistry::getTableLocator()->get('UserDepartments')->find()->where(['name' => $_SERVER['BOOTSTRAP_ADMIN_DEPARTMENT']])->firstOrFail();
+        $user = $this->users()->find()->where(['role' => 'ADMIN_PCM'])->firstOrFail();
+        $this->assertSame($department->id, $user->department_id);
+        $this->assertSame(2, TableRegistry::getTableLocator()->get('RegistrationAudits')->find()->count());
     }
 }

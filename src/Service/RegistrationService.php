@@ -14,7 +14,7 @@ class RegistrationService
         $table->getConnection()->transactional(function () use ($table, $entity, $before, $actorId, $action): void {
             $passwordChanged = $entity->isDirty('password');
             $table->saveOrFail($entity);
-            $fields = $table->getAlias() === 'Users' ? ['name', 'username', 'email', 'role', 'active', 'must_change_password'] : ['code', 'name', 'active'];
+            $fields = $table->getAlias() === 'Users' ? ['name', 'username', 'email', 'role', 'active', 'must_change_password', 'department_id'] : ['code', 'name', 'active'];
             $after = array_intersect_key($entity->toArray(), array_flip($fields));
             if ($table->getAlias() === 'Users') {
                 $after['password_changed'] = $passwordChanged;

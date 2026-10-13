@@ -15,7 +15,7 @@ O sistema NÃO abre a OS no TOTVS nesta primeira versão. O PCM continua abrindo
 - gerencia usuários;
 - gerencia setores;
 - vê todas as solicitações;
-- assume/trata solicitações;
+- trata solicitações sem etapa de assumir;
 - informa número da OS TOTVS;
 - cancela solicitações;
 - consulta auditoria e indicadores.
@@ -99,8 +99,8 @@ Na interface:
 Estado inicial após envio.
 
 ### EM_ANALISE
-Quando alguém do PCM assumir a solicitação.
-Registrar usuário e horário.
+Estado legado, mantido para consulta histórica. Não é mais gerado pelo fluxo atual.
+Pedidos antigos em análise são devolvidos à fila Aguardando PCM com auditoria.
 
 ### OS_ABERTA
 Quando o PCM informar e confirmar o número da OS criada no TOTVS.
@@ -171,9 +171,13 @@ Mostrar:
 - histórico em ordem cronológica.
 
 Para PCM:
-- assumir solicitação;
 - informar OS TOTVS;
 - cancelar com motivo.
+
+Revisão operacional vigente: a página inicial exibe apenas trabalho ativo, sem filtros.
+Atendidas, encerradas e canceladas ficam em Relatórios e no histórico pessoal.
+O.S. TOTVS deve ser única; eventos novos guardam snapshot da identidade do usuário,
+situação anterior/nova e detalhes. Dashboard atualiza automaticamente a cada 30 segundos.
 
 ## 13. Auditoria
 Registrar eventos em tabela própria.

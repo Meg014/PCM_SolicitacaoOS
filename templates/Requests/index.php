@@ -1,4 +1,4 @@
-<?php $this->assign('title', 'Minhas solicitações'); ?>
+<?php $this->assign('hideRequestShortcut', '1'); $this->assign('title', 'Minhas solicitações'); ?>
 <div class="page-heading">
     <h1>Minhas solicitações</h1>
     <?= $this->Html->link('+ Solicitar Ordem de Serviço', ['action' => 'add'], ['class' => 'button request-shortcut']) ?>

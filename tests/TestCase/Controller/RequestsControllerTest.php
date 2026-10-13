@@ -263,14 +263,14 @@ class RequestsControllerTest extends TestCase
         $this->assertSame(1, $service->query(['unit' => 'USINA'])->count());
         $this->assertSame(1, $service->query(['unit' => 'UNSPECIFIED'])->count());
         $this->session(['Auth' => 1]);
-        foreach (['/painel?unit=USINA', '/relatorios?unit=USINA'] as $url) {
+        foreach (['/relatorios?unit=USINA'] as $url) {
             $this->get($url);
             $this->assertResponseOk();
             $this->assertResponseContains('SOL-2026-000001');
             $this->assertResponseNotContains('SOL-2026-000002');
             $this->assertResponseContains('/img/icon.png');
         }
-        $this->get('/painel?unit=INVALID');
+        $this->get('/relatorios?unit=INVALID');
         $this->assertResponseContains('Selecione uma unidade válida');
     }
 
@@ -347,7 +347,7 @@ class RequestsControllerTest extends TestCase
         $this->get('/solicitacoes/1');
         $this->assertResponseOk();
         $this->assertResponseContains('Ações do PCM');
-        $this->assertResponseContains('Assumir solicitação');
+        $this->assertResponseNotContains('Assumir solicitação');
         $this->assertResponseNotContains('Tratar solicitação');
         $this->assertResponseNotContains('Fila de O.S.');
         $this->assertResponseContains('Início');
@@ -373,7 +373,7 @@ class RequestsControllerTest extends TestCase
         $this->assertResponseContains('Solicitante:'); $this->assertResponseContains('Usuário 3');
         $this->assertResponseNotContains('name="user_id"');
         $this->assertResponseContains('class="os-option"');
-        $this->assertResponseContains('header-request-shortcut');
+        $this->assertResponseNotContains('header-request-shortcut');
         $this->assertResponseNotContains('user-scalable=no');
     }
 

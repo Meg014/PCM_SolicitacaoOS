@@ -24,7 +24,7 @@ $role = $identity ? $identity->get('role') : null;
         <?= $this->Html->link('PCM', ['controller' => 'Home', 'action' => 'index'], ['class' => 'brand']) ?>
         <span class="app-name">Solicitação de Serviços</span>
         <?php if ($identity): ?>
-        <?php if (!$forced): ?>
+        <?php if (!$forced && !$this->fetch('hideRequestShortcut')): ?>
         <?= $this->Html->link('Solicitar Ordem de Serviço', ['controller' => 'Requests', 'action' => 'add'], ['class' => 'button header-request-shortcut']) ?>
         <?php endif; ?>
         <button type="button" class="menu-toggle secondary" aria-controls="main-navigation" aria-expanded="true">Menu</button>
@@ -37,13 +37,13 @@ $role = $identity ? $identity->get('role') : null;
                     <?= $this->Html->link('Indicadores', ['controller' => 'Reports', 'action' => 'indicators']) ?>
                     <?= $this->Html->link('Relatórios', ['controller' => 'Reports', 'action' => 'index']) ?>
                 <?php endif; ?>
-                <?= $this->Html->link('Nova Ordem de Serviço', ['controller' => 'Requests', 'action' => 'add']) ?>
+                <?php if (!$this->fetch('hideRequestShortcut')): ?><?= $this->Html->link('Nova Ordem de Serviço', ['controller' => 'Requests', 'action' => 'add'], ['class' => 'navigation-request-shortcut']) ?><?php endif; ?>
                 <?= $this->Html->link('Minhas solicitações', ['controller' => 'Requests', 'action' => 'index']) ?>
                 <?= $this->Html->link('Acompanhar execução', ['controller' => 'Requests', 'action' => 'work']) ?>
                 <?php if ($role === \App\Domain\Enum\UserRole::ADMIN_PCM->value): ?>
                 <details class="admin-menu"><summary>Administração</summary><div>
                     <?= $this->Html->link('Usuários', ['controller' => 'Users', 'action' => 'index']) ?>
-                    <?= $this->Html->link('Mãos de obra', ['controller' => 'Sectors', 'action' => 'index']) ?>
+                    <?= $this->Html->link('Mãos de obra', ['controller' => 'Sectors', 'action' => 'index']) ?><?= $this->Html->link('Setores dos usuários', ['controller' => 'UserDepartments', 'action' => 'index']) ?>
                 </div></details>
                 <?php endif; ?>
                 <?= $this->Html->link('Meu perfil', ['controller' => 'Profile', 'action' => 'index']) ?>

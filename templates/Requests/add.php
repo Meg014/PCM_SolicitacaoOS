@@ -1,4 +1,4 @@
-<?php
+<?php $this->assign('hideRequestShortcut', '1');
 $this->assign('title', 'Nova Ordem de Serviço');
 $this->Html->script('request-form', ['block' => true, 'defer' => true]);
 $data = $this->getRequest()->getData();

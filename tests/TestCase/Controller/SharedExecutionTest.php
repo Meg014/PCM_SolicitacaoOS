@@ -120,7 +120,7 @@ class SharedExecutionTest extends TestCase
         $this->assertSame([1, 2, 3, 1], array_column($audits, 'user_id'));
         $this->get('/solicitacoes/1'); $this->assertResponseOk();
         $this->assertResponseContains('Marcos'); $this->assertResponseContains('08/10/2026 08:00');
-        $this->assertResponseContains('PCM confirmou o encerramento');
+        $this->assertResponseContains('confirmou o encerramento');
     }
 
     public function testRequesterCanContinueAnotherPersonsTrackingButNotOpeningOnly(): void
@@ -145,7 +145,7 @@ class SharedExecutionTest extends TestCase
                 $this->enableCsrfToken('pcm_solicitacao_os_csrf'); $this->post('/solicitacoes/nova', $this->data($flow->value) + ['confirm_existing' => '1']);
                 $this->assertResponseCode(302);
             }
-            foreach (['assumir', 'vincular-os', 'cancelar', 'confirmar-encerramento'] as $action) {
+            foreach (['vincular-os', 'cancelar', 'confirmar-encerramento'] as $action) {
                 $this->postAction($action, ['totvs_os_number' => '123', 'reason' => 'Teste', 'confirmed_closed' => '1']);
                 $this->assertResponseCode(403);
             }
@@ -256,7 +256,7 @@ class SharedExecutionTest extends TestCase
         $this->get('/relatorios?flow=ACOMPANHAMENTO'); $this->assertResponseOk();
         $this->assertResponseContains('SOL-2026-000002'); $this->assertResponseNotContains('SOL-2026-000001');
         $this->get('/painel?flow=ACOMPANHAMENTO'); $this->assertResponseOk();
-        $this->assertResponseContains('SOL-2026-000002'); $this->assertResponseNotContains('SOL-2026-000001');
+        $this->assertResponseContains('SOL-2026-000002'); $this->assertResponseContains('SOL-2026-000001');
     }
 
     public function testLaborSearchIgnoresAccentsAndCaseWithoutChangingData(): void

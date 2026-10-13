@@ -47,7 +47,7 @@ class OsDispositionTest extends TestCase
             $request = (new RequestCreationService($this->assets()))->create($this->data($choice), 3);
             $this->assertSame($choice->value, $request->os_disposition);
             $this->assertSame($choice === OsDisposition::SOMENTE_ABERTURA ? 'SOMENTE_ABERTURA' : 'ACOMPANHAMENTO', $request->flow);
-            (new RequestHandlingService())->handle($request->id, 1, 'link', '004564');
+            (new RequestHandlingService())->handle($request->id, 1, 'link', '004564-' . $request->id);
             $expected = match ($choice) {
                 OsDisposition::SOMENTE_ABERTURA => RequestStatus::ATENDIDA,
                 OsDisposition::MANTER_ABERTA => RequestStatus::EM_EXECUCAO,
@@ -142,8 +142,10 @@ class OsDispositionTest extends TestCase
         }
         $this->session(['Auth' => 1]); $this->get('/painel?unit=USINA'); $this->assertResponseOk();
         preg_match_all('/>FILA-(\d+)<\/a>/', (string)$this->_response->getBody(), $matches);
+        // O.S. aberta e execução compartilham a fila ordenada por atividade mais recente.
+        $expected = [11, 10, 13, 12, 19, 17, 18, 16];
         $this->assertSame($expected, array_map('intval', $matches[1]));
-        $this->get('/painel?unit=USINA&status=EM_EXECUCAO'); $this->assertResponseOk();
+        $this->get('/relatorios?unit=USINA&status=EM_EXECUCAO'); $this->assertResponseOk();
         $this->assertResponseContains('FILA-19'); $this->assertResponseNotContains('FILA-20');
     }
 }

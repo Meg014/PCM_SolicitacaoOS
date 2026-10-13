@@ -14,7 +14,7 @@ class AdministrationTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.RegistrationAudits'];
+    protected array $fixtures = ['app.UserDepartments', 'app.Users', 'app.Sectors', 'app.RegistrationAudits'];
 
     public function setUp(): void
     {
@@ -80,12 +80,12 @@ class AdministrationTest extends TestCase
     {
         $this->login();
         foreach (['sem.email1', 'sem.email2'] as $username) {
-            $this->postForm('/usuarios/novo', ['name' => 'Sem e-mail', 'username' => $username, 'email' => '', 'password' => 'SenhaTeste123!', 'role' => UserRole::SOLICITANTE->value, 'active' => '1']);
+            $this->postForm('/usuarios/novo', ['department_id' => 1, 'name' => 'Sem e-mail', 'username' => $username, 'email' => '', 'password' => 'SenhaTeste123!', 'role' => UserRole::SOLICITANTE->value, 'active' => '1']);
             $this->assertRedirect('/usuarios');
         }
         $users = TableRegistry::getTableLocator()->get('Users');
         $this->assertSame(2, $users->find()->where(['email IS' => null])->count());
-        $this->postForm('/usuarios/novo', ['name' => 'Duplicado', 'username' => 'SEM.EMAIL1', 'password' => 'SenhaTeste123!', 'role' => UserRole::SOLICITANTE->value]);
+        $this->postForm('/usuarios/novo', ['department_id' => 1, 'name' => 'Duplicado', 'username' => 'SEM.EMAIL1', 'password' => 'SenhaTeste123!', 'role' => UserRole::SOLICITANTE->value]);
         $this->assertResponseOk();
         $this->assertResponseContains('Este usuário já está cadastrado');
         $this->assertSame(6, $users->find()->count());
@@ -97,7 +97,7 @@ class AdministrationTest extends TestCase
     {
         $this->login();
         foreach (['', 'joao@example.test'] as $username) {
-            $this->postForm('/usuarios/novo', ['name' => 'Inválido', 'username' => $username, 'password' => 'SenhaTeste123!', 'role' => UserRole::SOLICITANTE->value]);
+            $this->postForm('/usuarios/novo', ['department_id' => 1, 'name' => 'Inválido', 'username' => $username, 'password' => 'SenhaTeste123!', 'role' => UserRole::SOLICITANTE->value]);
             $this->assertResponseOk();
         }
         $this->assertSame(4, TableRegistry::getTableLocator()->get('Users')->find()->count());
@@ -148,7 +148,7 @@ class AdministrationTest extends TestCase
     public function testRequesterCannotWriteUsers(): void
     {
         $this->login(3);
-        $this->postForm('/usuarios/1/editar', ['name' => 'Alterado']);
+        $this->postForm('/usuarios/1/editar', ['department_id' => 1, 'name' => 'Alterado']);
         $this->assertResponseCode(403);
         $this->assertSame('Usuário 1', TableRegistry::getTableLocator()->get('Users')->get(1)->name);
     }
@@ -166,7 +166,7 @@ class AdministrationTest extends TestCase
     {
         $this->login();
         $this->postForm('/usuarios/novo', [
-            'id' => 1, 'name' => 'Novo usuário', 'username' => 'novo', 'email' => 'novo@example.test',
+            'department_id' => 1, 'id' => 1, 'name' => 'Novo usuário', 'username' => 'novo', 'email' => 'novo@example.test',
             'password' => 'NovaSenha12345!', 'role' => UserRole::SOLICITANTE->value, 'active' => '1',
         ]);
         $this->assertRedirect('/usuarios');
@@ -183,7 +183,7 @@ class AdministrationTest extends TestCase
         $this->login();
         $users = TableRegistry::getTableLocator()->get('Users');
         $before = $users->get(2)->password;
-        $this->postForm('/usuarios/2/editar', ['name' => 'Gestor atualizado', 'password' => '']);
+        $this->postForm('/usuarios/2/editar', ['department_id' => 1, 'name' => 'Gestor atualizado', 'password' => '']);
         $this->assertRedirect('/usuarios');
         $this->assertSame($before, $users->get(2)->password);
     }
@@ -199,7 +199,7 @@ class AdministrationTest extends TestCase
     public function testInvalidRoleAndDuplicateEmailAreRejected(): void
     {
         $this->login();
-        $data = ['name' => 'Duplicado', 'username' => 'duplicado', 'email' => 'user1@example.test', 'password' => 'NovaSenha12345!', 'role' => UserRole::GESTOR->value];
+        $data = ['department_id' => 1, 'name' => 'Duplicado', 'username' => 'duplicado', 'email' => 'user1@example.test', 'password' => 'NovaSenha12345!', 'role' => UserRole::GESTOR->value];
         $this->postForm('/usuarios/novo', $data);
         $this->assertResponseOk();
         $data['email'] = 'outro@example.test';
@@ -234,7 +234,7 @@ class AdministrationTest extends TestCase
         $audits = TableRegistry::getTableLocator()->get('RegistrationAudits');
         $audits->getValidator()->add('resource', 'reject', ['rule' => fn() => false]);
         $user = $users->newEntity([
-            'name' => 'Rollback', 'username' => 'rollback', 'email' => 'rollback@example.test', 'password' => 'SenhaTeste123!',
+            'department_id' => 1, 'name' => 'Rollback', 'username' => 'rollback', 'email' => 'rollback@example.test', 'password' => 'SenhaTeste123!',
             'role' => UserRole::SOLICITANTE->value, 'active' => true,
         ]);
         try {
@@ -262,17 +262,17 @@ class AdministrationTest extends TestCase
     {
         $this->login(); $users = TableRegistry::getTableLocator()->get('Users');
         foreach (['somente1@example.test', 'somente2@example.test'] as $email) {
-            $this->postForm('/usuarios/novo', ['name' => 'Apenas e-mail', 'email' => $email,
+            $this->postForm('/usuarios/novo', ['department_id' => 1, 'name' => 'Apenas e-mail', 'email' => $email,
                 'password' => 'SenhaTeste123!', 'role' => UserRole::SOLICITANTE->value, 'active' => '1']);
             $this->assertRedirect('/usuarios');
             $this->assertNull($users->find()->where(['email' => $email])->firstOrFail()->username);
         }
         $user = $users->find()->where(['email' => 'somente1@example.test'])->firstOrFail();
-        $this->postForm('/usuarios/' . $user->id . '/editar', ['name' => 'Apenas e-mail', 'username' => '', 'email' => '',
+        $this->postForm('/usuarios/' . $user->id . '/editar', ['department_id' => 1, 'name' => 'Apenas e-mail', 'username' => '', 'email' => '',
             'password' => '', 'role' => UserRole::SOLICITANTE->value, 'active' => '1']);
         $this->assertResponseOk(); $this->assertResponseContains('Pelo menos um deles é necessário');
         $this->assertSame('somente1@example.test', $users->get($user->id)->email);
-        $this->postForm('/usuarios/novo', ['name' => 'Duplicado', 'email' => 'SOMENTE1@EXAMPLE.TEST',
+        $this->postForm('/usuarios/novo', ['department_id' => 1, 'name' => 'Duplicado', 'email' => 'SOMENTE1@EXAMPLE.TEST',
             'password' => 'SenhaTeste123!', 'role' => UserRole::SOLICITANTE->value, 'active' => '1']);
         $this->assertResponseOk(); $this->assertSame(6, $users->find()->count());
     }

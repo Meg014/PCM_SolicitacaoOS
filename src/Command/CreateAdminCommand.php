@@ -39,7 +39,15 @@ class CreateAdminCommand extends Command
                     if (!is_string($value)) { throw new \InvalidArgumentException(); }
                     $data[$field] = $field === 'password' ? $value : trim($value);
                 }
-                $user = $users->newEntity($data + ['role' => UserRole::ADMIN_PCM->value, 'active' => true]);
+                $departmentName = env('BOOTSTRAP_ADMIN_DEPARTMENT', '');
+                if (!is_string($departmentName) || trim($departmentName) === '') { throw new \InvalidArgumentException(); }
+                $departments = $this->fetchTable('UserDepartments');
+                $department = $departments->find()->where(['name' => trim($departmentName)])->first();
+                if (!$department) {
+                    $department = $departments->newEntity(['name' => trim($departmentName), 'active' => true]);
+                    (new RegistrationService())->save($departments, $department, null, null);
+                }
+                $user = $users->newEntity($data + ['department_id' => $department->id, 'role' => UserRole::ADMIN_PCM->value, 'active' => true]);
                 if ($user->hasErrors()) { throw new \InvalidArgumentException(); }
                 $user->set('must_change_password', true);
                 (new RegistrationService())->save($users, $user, null, null, 'PRODUCTION_ADMIN_BOOTSTRAPPED');
@@ -49,7 +57,7 @@ class CreateAdminCommand extends Command
                 : 'Já existe um ADMIN_PCM, inclusive se inativo. Nenhum usuário foi criado ou alterado.');
             return self::CODE_SUCCESS;
         } catch (\InvalidArgumentException | \Cake\ORM\Exception\PersistenceFailedException $e) {
-            $io->err('Confira BOOTSTRAP_ADMIN_NAME e BOOTSTRAP_ADMIN_PASSWORD (mínimo de 6 caracteres). Informe BOOTSTRAP_ADMIN_USERNAME ou BOOTSTRAP_ADMIN_EMAIL, ou ambos. Identificadores preenchidos devem ser válidos e estar disponíveis.');
+            $io->err('Confira BOOTSTRAP_ADMIN_NAME, BOOTSTRAP_ADMIN_DEPARTMENT (nome do setor) e BOOTSTRAP_ADMIN_PASSWORD (mínimo de 6 caracteres). Informe BOOTSTRAP_ADMIN_USERNAME ou BOOTSTRAP_ADMIN_EMAIL, ou ambos. Identificadores preenchidos devem ser válidos e estar disponíveis; o setor deve estar ativo.');
         } catch (\Throwable $e) {
             // Não imprimir/encadear erros de persistência: podem conter dados sensíveis.
             $io->err('Não foi possível criar o administrador. Verifique a conexão PostgreSQL e as migrations.');

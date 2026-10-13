@@ -7,10 +7,13 @@
 <?= $this->Form->control('start', ['label' => 'Data inicial', 'type' => 'date', 'value' => $value('start')]) ?>
 <?= $this->Form->control('end', ['label' => 'Data final', 'type' => 'date', 'value' => $value('end')]) ?>
 <?= $this->Form->control('status', ['label' => 'Situação', 'options' => $statuses, 'empty' => 'Todas', 'value' => $value('status')]) ?>
+<?= $this->Form->control('maintenance_type', ['label' => 'Tipo de manutenção', 'options' => \App\Domain\Enum\MaintenanceType::options(), 'empty' => 'Todos', 'value' => $value('maintenance_type')]) ?>
 <?= $this->Form->control('flow', ['label' => 'Tipo de solicitação', 'options' => \App\Domain\Enum\RequestFlow::options(), 'empty' => 'Todos', 'value' => $value('flow')]) ?>
 <?= $this->Form->control('sector_id', ['label' => 'Mão de obra', 'options' => $sectors, 'empty' => 'Todos', 'value' => $value('sector_id')]) ?>
 <?= $this->Form->control('unit', ['label' => 'Unidade', 'options' => \App\Domain\Enum\RequestUnit::options() + ['UNSPECIFIED' => 'Não informada (anteriores)'], 'empty' => 'Todas', 'value' => $value('unit')]) ?>
 <?= $this->Form->control('user_id', ['label' => 'Solicitante', 'options' => $users, 'empty' => 'Todos', 'value' => $value('user_id')]) ?>
+<?= $this->Form->control('department_id', ['label' => 'Setor do solicitante', 'options' => $departments + ['UNSPECIFIED' => 'Não informado (anteriores)'], 'empty' => 'Todos', 'value' => $value('department_id')]) ?>
+<?= $this->Form->control('totvs_os_number', ['label' => 'Número da O.S. TOTVS', 'maxlength' => 100, 'value' => $value('totvs_os_number')]) ?>
 <?= $this->Form->control('asset', ['label' => 'Bem / equipamento', 'maxlength' => 100, 'value' => $value('asset')]) ?>
 <?= $this->Form->control('q', ['label' => 'Buscar número ou descrição', 'maxlength' => 100, 'value' => $value('q')]) ?>
 <?= $this->Form->button('Filtrar') ?>

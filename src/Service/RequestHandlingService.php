@@ -25,22 +25,21 @@ class RequestHandlingService
                 throw new NotFoundException('Solicitação não encontrada.');
             }
             $request = $requests->get($id);
-            $old = ['status' => $request->status, 'totvs_os_number' => $request->totvs_os_number, 'assigned_to' => $request->assigned_to];
+            $old = ['status' => $request->status, 'totvs_os_number' => $request->totvs_os_number];
             $now = new \Cake\I18n\DateTime('now', 'UTC');
             $pending = [RequestStatus::AGUARDANDO_PCM->value, RequestStatus::EM_ANALISE->value];
-            if ($action === 'assign') {
-                if ($request->status !== RequestStatus::AGUARDANDO_PCM->value) {
-                    throw new ConflictException('Esta solicitação já foi assumida ou encerrada. Atualize a página.');
-                }
-                $changes = ['status' => RequestStatus::EM_ANALISE->value, 'assigned_to' => $actorId, 'assigned_at' => $now];
-                $event = 'REQUEST_ASSIGNED';
-            } elseif ($action === 'link') {
+            if ($action === 'link') {
                 if (!in_array($request->status, $pending, true)) {
                     throw new ConflictException('Não é possível vincular O.S. a uma solicitação encerrada.');
                 }
                 if (!is_string($value) || trim($value) === '' || mb_strlen(trim($value)) > 100 || preg_match('/[\x00-\x1F\x7F]/', $value)) {
                     throw new \InvalidArgumentException('Informe o número da O.S. TOTVS, com até 100 caracteres.');
                 }
+                // Serializa vínculos concorrentes do mesmo número; o índice também protege gravações diretas.
+                $requests->getConnection()->execute('SELECT pg_advisory_xact_lock(hashtextextended(:os, 0))', ['os' => 'os:' . trim($value)]);
+                $existing = $requests->find()->where(['ServiceRequests.id !=' => $id])
+                    ->where(['btrim(ServiceRequests.totvs_os_number)' => trim($value)])->first();
+                if ($existing) { throw new ConflictException('Esta O.S. já está vinculada à solicitação ' . $existing->number . '.'); }
                 $state = match ($request->os_disposition) {
                     \App\Domain\Enum\OsDisposition::SOMENTE_ABERTURA->value => RequestStatus::ATENDIDA,
                     \App\Domain\Enum\OsDisposition::MANTER_ABERTA->value => RequestStatus::EM_EXECUCAO,
@@ -72,6 +71,7 @@ class RequestHandlingService
             } else {
                 throw new \InvalidArgumentException('Ação inválida.');
             }
+            $changes['last_activity_at'] = $now;
             $request->patch($changes, ['guard' => false]);
             $requests->saveOrFail($request);
             $audits = $tables->get('RequestAudits');

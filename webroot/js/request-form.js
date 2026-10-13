@@ -133,6 +133,7 @@ if (items && add) {
                 item.querySelectorAll('label').forEach(label => { if (label.htmlFor === oldId) label.htmlFor = input.id; });
             });
             textarea.previousElementSibling.htmlFor = textarea.id;
+            item.querySelector('[data-included]').name = 'items[' + index + '][_added]';
             item.querySelector('.remove-item').disabled = items.children.length === 1 && !document.getElementById('os-disposition');
         });
         add.disabled = items.children.length >= 50;
@@ -141,7 +142,8 @@ if (items && add) {
         if (items.children.length >= 50) return;
         const item = items.firstElementChild.cloneNode(true);
         item.querySelector('textarea').value = '';
-        item.querySelectorAll('input').forEach(input => { input.value = ''; });
+        item.querySelectorAll('input, textarea').forEach(input => { input.value = ''; input.setCustomValidity(''); });
+        item.querySelector('[data-included]').value = '1';
         items.append(item);
         renumber();
         item.querySelector('textarea').focus();
@@ -151,7 +153,7 @@ if (items && add) {
         if (!event.target.classList.contains('remove-item')) return;
         if (items.children.length === 1) {
             if (!document.getElementById('os-disposition')) return;
-            event.target.closest('.request-item').querySelectorAll('input, textarea').forEach(field => { field.value = ''; field.required = false; });
+            event.target.closest('.request-item').querySelectorAll('input, textarea').forEach(field => { field.value = ''; field.required = false; field.setCustomValidity(''); });
             return;
         }
         event.target.closest('.request-item').remove();
@@ -172,7 +174,7 @@ if (flow) {
         fieldset.querySelectorAll('.request-item').forEach(row => {
             const fields = [...row.querySelectorAll('input, textarea')];
             const filled = fields.some(field => field.value.trim() !== '');
-            fields.forEach(field => { field.required = !fieldset.hidden && filled; });
+            fields.forEach(field => { field.required = !fieldset.hidden && filled; if (!field.required) field.setCustomValidity(''); });
         });
     };
     flow.addEventListener('change', updateItems);
@@ -212,6 +214,11 @@ if (alertBox) {
                 } else {
                     const p = document.createElement('p'); p.textContent = 'Consulte o PCM para detalhes deste pedido somente de abertura.'; article.append(p);
                 }
+                if (row.add_item_url) {
+                    const link = document.createElement('a');
+                    link.href = row.add_item_url; link.className = 'button existing-item-action';
+                    link.textContent = 'Fazer apontamento nesta O.S.'; article.append(link);
+                }
                 rowsBox.append(article);
             }
             alertBox.hidden = !data.results.length;
@@ -227,3 +234,30 @@ if (alertBox) {
     const selected = assetGroup.querySelector('[data-selected]');
     if (selected.value) check({code: selected.value, branch: assetGroup.querySelector('[data-branch]').value});
 }
+
+// Mensagens do formulário em português, incluindo linhas inseridas dinamicamente.
+document.addEventListener('invalid', event => {
+    const field = event.target;
+    if (!field.setCustomValidity || !field.required || field.disabled) return;
+    if (field.value.trim() !== '') return;
+    const messages = {unit: 'Selecione a unidade.', asset_label: 'Pesquise e selecione um equipamento da lista.',
+        sector_label: 'Pesquise e selecione uma mão de obra da lista.', maintenance_type: 'Selecione o tipo de manutenção.',
+        description: 'Descreva o serviço ou problema.', os_disposition: 'Escolha como a Ordem de Serviço deve seguir.'};
+    const itemMessages = {executor: 'Informe o executante.', service_date: 'Informe a data do serviço.',
+        start_time: 'Informe a hora inicial.', end_time: 'Informe a hora final.', description: 'Descreva este apontamento.'};
+    const key = field.dataset.itemField || (field.name?.startsWith('items[') ? 'description' : null);
+    if (key || messages[field.name]) field.setCustomValidity(key ? itemMessages[key] : messages[field.name]);
+}, true);
+document.addEventListener('input', event => {
+    if (event.target.setCustomValidity) event.target.setCustomValidity('');
+    if (event.target.required && event.target.value !== '' && event.target.value.trim() === '') {
+        event.target.setCustomValidity(event.target.dataset.itemField === 'executor' ? 'Informe o executante.' : 'Descreva o serviço.');
+    }
+    if (event.target.name === 'os_disposition') document.querySelectorAll('[name="os_disposition"]').forEach(field => field.setCustomValidity(''));
+    const row = event.target.closest('.request-item');
+    if (row) {
+        const start = row.querySelector('[data-item-field="start_time"]');
+        const end = row.querySelector('[data-item-field="end_time"]');
+        end.setCustomValidity(start.value && end.value && end.value < start.value ? 'A hora final não pode ser anterior à hora inicial.' : '');
+    }
+});

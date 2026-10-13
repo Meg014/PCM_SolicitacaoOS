@@ -8,6 +8,9 @@
 <?= $this->Form->control('email', ['label' => 'E-mail (opcional)', 'type' => 'email', 'required' => false, 'maxlength' => 254, 'autocomplete' => 'email']) ?>
 <?= $this->Form->control('password', ['label' => $user->isNew() ? 'Senha provisória' : 'Nova senha provisória (deixe em branco para manter)', 'type' => 'password', 'value' => '', 'required' => $user->isNew(), 'minlength' => 6, 'autocomplete' => 'new-password']) ?>
 <p class="help">Senha inicial / redefinida: use pelo menos 6 caracteres. O usuário deverá criar sua senha pessoal no próximo acesso.</p>
+<?= $this->Form->control('department_id', ['label' => 'Setor do funcionário', 'options' => $departments, 'empty' => 'Selecione o setor', 'required' => true]) ?>
+<?php if (!$user->isNew() && !$user->department_id): ?><p class="help">Registro anterior sem setor. Selecione o departamento correto para atualizar o cadastro.</p><?php endif; ?>
+<?php if (!$departments): ?><p>Cadastre primeiro um <?= $this->Html->link('setor de usuário', ['controller' => 'UserDepartments', 'action' => 'add']) ?>.</p><?php endif; ?>
 <?= $this->Form->control('role', ['label' => 'Perfil', 'options' => $roles, 'empty' => 'Selecione o perfil']) ?>
 <?= $this->Form->control('active', ['label' => 'Usuário ativo', 'type' => 'checkbox', 'default' => true]) ?>
 <?= $this->Form->button('Salvar usuário') ?>
