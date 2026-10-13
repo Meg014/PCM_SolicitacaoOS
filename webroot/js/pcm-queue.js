@@ -21,7 +21,8 @@
             const response = await fetch(url, {headers: {'Accept': 'text/html'}, cache: 'no-store', signal: controller.signal});
             if (response.redirected || response.status === 403) {
                 queue.replaceChildren();
-                message.textContent = 'Seu acesso mudou. Entre novamente para continuar.';
+                message.textContent = response.redirected ? 'Sua sessão expirou por inatividade. Entre novamente para continuar.' : 'Seu acesso mudou. Entre novamente para continuar.';
+                document.getElementById('queue-login-link').hidden = false;
                 clearInterval(timer); return;
             }
             if (!response.ok) throw new Error();

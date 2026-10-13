@@ -34,7 +34,7 @@ class AppController extends Controller
         $identity = $this->request->getAttribute('identity');
         $controller = $this->request->getParam('controller');
         $action = $this->request->getParam('action');
-        $allowed = ($controller === 'Profile' && $action === 'password') || ($controller === 'Home' && in_array($action, ['login', 'logout'], true));
+        $allowed = ($controller === 'Profile' && $action === 'password') || ($controller === 'Home' && in_array($action, ['login', 'logout', 'activity'], true));
         if ($identity && $identity->get('must_change_password') && !$allowed) {
             $event->setResult($this->redirect(['controller' => 'Profile', 'action' => 'password']));
             $event->stopPropagation();

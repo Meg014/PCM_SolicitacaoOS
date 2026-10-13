@@ -9,13 +9,15 @@ use Psr\Http\Message\UploadedFileInterface;
 
 class AttachmentService
 {
-    public const MAX_SIZE = 5 * 1024 * 1024;
+    public const MAX_SIZE = 15 * 1024 * 1024;
     private array $createdFiles = [];
 
     public function validate(mixed $files): array
     {
         if ($files === null) { return []; }
-        if (!is_array($files) || count($files) > 5) {
+        if (!is_array($files)) { throw new UploadException('Selecione fotos válidas para anexar.'); }
+        $files = array_values(array_filter($files, fn($file) => !$file instanceof UploadedFileInterface || $file->getError() !== UPLOAD_ERR_NO_FILE));
+        if (count($files) > 5) {
             throw new UploadException('Selecione no máximo 5 fotos.');
         }
         $accepted = [];
@@ -24,7 +26,7 @@ class AttachmentService
             if ($file->getError() === UPLOAD_ERR_NO_FILE) { continue; }
             if ($file->getError() !== UPLOAD_ERR_OK) { throw new UploadException('Não foi possível receber uma foto. Confira o tamanho e selecione novamente.'); }
             $size = $file->getSize();
-            if (!$size || $size > self::MAX_SIZE) { throw new UploadException('Cada foto deve ter até 5 MB.'); }
+            if (!$size || $size > self::MAX_SIZE) { throw new UploadException('Cada foto deve ter até 15 MB.'); }
             $extension = strtolower(pathinfo((string)$file->getClientFilename(), PATHINFO_EXTENSION));
             $types = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
             if (!isset($types[$extension])) { throw new UploadException('Use fotos JPG, PNG ou WebP. Outros tipos de arquivo não são permitidos.'); }
@@ -35,7 +37,7 @@ class AttachmentService
             $image = @getimagesizefromstring($content);
             $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($content);
             if (strlen($content) !== $size || !$image || $mime !== $types[$extension] || ($image['mime'] ?? '') !== $mime || $image[0] * $image[1] > 40000000) {
-                throw new UploadException('O arquivo não é uma foto válida ou é grande demais. Use JPG, PNG ou WebP de até 5 MB.');
+                throw new UploadException('O arquivo não é uma foto válida ou é grande demais. Use JPG, PNG ou WebP de até 15 MB.');
             }
             $name = preg_replace('/[\x00-\x1F\x7F]/u', '', basename(str_replace('\\', '/', (string)$file->getClientFilename())));
             $accepted[] = ['file' => $file, 'mime' => $mime, 'extension' => $extension === 'jpeg' ? 'jpg' : $extension, 'size' => $size, 'name' => mb_substr($name ?: 'foto.' . $extension, 0, 200)];

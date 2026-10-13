@@ -42,6 +42,13 @@ class SharedExecutionTest extends TestCase
     }
 
     private function request(): mixed { return TableRegistry::getTableLocator()->get('ServiceRequests')->get(1); }
+    private function syncClosed(): void
+    {
+        $request = $this->request(); $fake = $this->createMock(\App\Service\OrdersLookupInterface::class);
+        $fake->method('batch')->willReturn([['number' => $request->totvs_os_number, 'branch' => $request->asset_branch,
+            'asset_code' => $request->asset_code, 'situation' => 'L', 'finished' => 'S']]);
+        (new \App\Service\TotvsOrderSyncService($fake))->sync();
+    }
 
     private function prepareTracking(): void
     {
@@ -108,19 +115,19 @@ class SharedExecutionTest extends TestCase
         $this->postAction('apontamentos', ['items' => [$this->item()]]);
         $this->assertSame(3, TableRegistry::getTableLocator()->get('RequestItems')->find()->count());
         $this->session(['Auth' => 1]); $this->get('/solicitacoes/1');
-        $this->assertResponseContains('Confirmar encerramento no TOTVS');
+        $this->assertResponseNotContains('Confirmar encerramento no TOTVS');
         $this->postAction('confirmar-encerramento');
         $this->assertSame(RequestStatus::AGUARDANDO_ENCERRAMENTO->value, $this->request()->status);
-        $this->postAction('confirmar-encerramento', ['confirmed_closed' => '1']);
+        $this->syncClosed();
         $this->assertSame(RequestStatus::ENCERRADA->value, $this->request()->status);
-        $this->assertSame(1, $this->request()->closed_by); $this->assertNotNull($this->request()->closed_at);
+        $this->assertNull($this->request()->closed_by); $this->assertNotNull($this->request()->closed_at);
         $this->assertSame(3, $this->request()->user_id);
         $audits = TableRegistry::getTableLocator()->get('RequestAudits')->find()->where(['action' => 'STATUS_CHANGED'])->orderBy(['id' => 'ASC'])->toArray();
-        $this->assertSame(['OS_ABERTA', 'EM_EXECUCAO', 'AGUARDANDO_ENCERRAMENTO', 'ENCERRADA'], array_map(fn($a) => $a->new_values['status'], $audits));
-        $this->assertSame([1, 2, 3, 1], array_column($audits, 'user_id'));
+        $this->assertSame(['OS_ABERTA', 'EM_EXECUCAO', 'AGUARDANDO_ENCERRAMENTO'], array_map(fn($a) => $a->new_values['status'], $audits));
+        $this->assertSame([1, 2, 3], array_column($audits, 'user_id'));
         $this->get('/solicitacoes/1'); $this->assertResponseOk();
         $this->assertResponseContains('Marcos'); $this->assertResponseContains('08/10/2026 08:00');
-        $this->assertResponseContains('confirmou o encerramento');
+        $this->assertResponseContains('Solicitação encerrada automaticamente');
     }
 
     public function testRequesterCanContinueAnotherPersonsTrackingButNotOpeningOnly(): void
@@ -145,7 +152,7 @@ class SharedExecutionTest extends TestCase
                 $this->enableCsrfToken('pcm_solicitacao_os_csrf'); $this->post('/solicitacoes/nova', $this->data($flow->value) + ['confirm_existing' => '1']);
                 $this->assertResponseCode(302);
             }
-            foreach (['vincular-os', 'cancelar', 'confirmar-encerramento'] as $action) {
+            foreach (['vincular-os', 'cancelar'] as $action) {
                 $this->postAction($action, ['totvs_os_number' => '123', 'reason' => 'Teste', 'confirmed_closed' => '1']);
                 $this->assertResponseCode(403);
             }
@@ -245,7 +252,29 @@ class SharedExecutionTest extends TestCase
         $this->assertSame('Outro problema', $audit->new_values['reason']); $this->assertSame(3, $audit->user_id);
     }
 
-    public function testClosureQueueComesFirstAndReportsKeepBothFlows(): void
+    public function testClosureLabelUsesTotvsAcrossScreensAndHistoryWithoutChangingStoredStatus(): void
+    {
+        $table = TableRegistry::getTableLocator()->get('ServiceRequests');
+        $table->updateAll(['flow' => 'ACOMPANHAMENTO', 'status' => 'AGUARDANDO_ENCERRAMENTO'], ['id' => 1]);
+        $audits = TableRegistry::getTableLocator()->get('RequestAudits');
+        $audits->saveOrFail($audits->newEntity(['request_id' => 1, 'user_id' => 3,
+            'action' => 'STATUS_CHANGED', 'new_values' => ['status' => 'AGUARDANDO_ENCERRAMENTO']]));
+        $this->session(['Auth' => 1]);
+        foreach (['/painel', '/painel/atualizacao', '/solicitacoes/1', '/relatorios', '/indicadores'] as $url) {
+            $this->get($url); $this->assertResponseOk();
+            $this->assertResponseContains('Aguardando encerramento no TOTVS');
+            $this->assertResponseNotContains('Aguardando encerramento pelo PCM');
+            if ($url === '/solicitacoes/1') {
+                $this->assertResponseContains('Situação alterada para Aguardando encerramento no TOTVS.');
+            }
+        }
+        $this->session(['Auth' => 3]); $this->get('/minhas-solicitacoes'); $this->assertResponseOk();
+        $this->assertResponseContains('Aguardando encerramento no TOTVS');
+        $this->assertResponseNotContains('Aguardando encerramento pelo PCM');
+        $this->assertSame('AGUARDANDO_ENCERRAMENTO', $table->get(1)->status);
+    }
+
+    public function testQueueBreaksEqualActivityByIdAndReportsKeepBothFlows(): void
     {
         TableRegistry::getTableLocator()->get('ServiceRequests')->updateAll(['flow' => 'ACOMPANHAMENTO', 'status' => 'AGUARDANDO_ENCERRAMENTO'], ['id' => 2]);
         $this->session(['Auth' => 1]); $this->get('/painel'); $this->assertResponseOk();

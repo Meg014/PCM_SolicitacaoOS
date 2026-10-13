@@ -21,7 +21,7 @@ enum RequestStatus: string
             self::EM_ANALISE => 'Em análise pelo PCM',
             self::OS_ABERTA => 'O.S. aberta - aguardando execução',
             self::EM_EXECUCAO => 'Serviço em andamento',
-            self::AGUARDANDO_ENCERRAMENTO => 'Aguardando encerramento pelo PCM',
+            self::AGUARDANDO_ENCERRAMENTO => 'Aguardando encerramento no TOTVS',
             self::ATENDIDA => 'Atendida',
             self::ENCERRADA => 'Encerrada',
             self::CANCELADA => 'Solicitação cancelada',

@@ -41,6 +41,20 @@ class ReportsController extends DashboardController
         $this->set(compact('indicators', 'filters', 'error'));
     }
 
+    public function order(string $id, \App\Service\OrdersLookupInterface $orders): void
+    {
+        $this->request->allowMethod(['get']);
+        $request = $this->fetchTable('ServiceRequests')->get($id);
+        if (!$request->totvs_os_number) { throw new \Cake\Http\Exception\NotFoundException('Esta solicitação ainda não tem O.S. vinculada.'); }
+        $order = null; $error = null;
+        try {
+            $order = $orders->find($request->totvs_os_number, (string)($request->totvs_os_branch ?? $request->asset_branch), $request->asset_code);
+            if (!$order) { $error = 'A O.S. não foi localizada de forma única para este Bem e filial. Confira o vínculo com o PCM.'; }
+        } catch (\App\Service\OrdersUnavailableException $e) { $error = $e->getMessage(); }
+        $this->response = $this->response->withHeader('Cache-Control', 'no-store');
+        $this->set(compact('request', 'order', 'error'));
+    }
+
     private function options(): void
     {
         $statuses = [];

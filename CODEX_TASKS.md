@@ -61,6 +61,7 @@ Execute UMA fase por vez.
 - status `OS_ABERTA`;
 - auditoria;
 - mostrar ao solicitante.
+- revisão homologada: sincronização somente leitura das O.S. vinculadas em acompanhamento, usando sync_totvs_orders; encerramento local automático apenas quando TOTVS confirmar L/S, sem confirmação manual.
 
 ## Fase 8 — Cancelamento e histórico
 - cancelar com motivo obrigatório;

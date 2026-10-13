@@ -14,6 +14,11 @@ $role = $identity ? $identity->get('role') : null;
     <title><?= h($this->fetch('title') ?: 'Solicitação de serviços') ?> · PCM</title>
     <?= $this->Html->css('app') ?>
     <?= $this->Html->script('navigation', ['defer' => true]) ?>
+    <?php if ($identity): ?>
+    <meta name="session-activity-url" content="<?= h($this->Url->build(['controller' => 'Home', 'action' => 'activity', '_method' => 'POST'])) ?>">
+    <meta name="csrf-token" content="<?= h($this->getRequest()->getAttribute('csrfToken')) ?>">
+    <?= $this->Html->script('session-activity', ['defer' => true]) ?>
+    <?php endif; ?>
     <?= $this->fetch('meta') ?>
     <?= $this->fetch('css') ?>
     <?= $this->fetch('script') ?>

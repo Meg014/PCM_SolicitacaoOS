@@ -46,10 +46,7 @@ $pending = in_array($request->status, [\App\Domain\Enum\RequestStatus::AGUARDAND
 <?php if ($isPcm && $request->status === \App\Domain\Enum\RequestStatus::AGUARDANDO_ENCERRAMENTO->value): ?>
 <section class="handling"><h2>Ações do PCM</h2>
 <?= $this->element('os_disposition', ['request' => $request]) ?>
-<p>O serviço foi concluído. Encerre a O.S. <?= h($request->totvs_os_number) ?> no TOTVS e depois confirme aqui.</p>
-<?= $this->Form->create(null, ['url' => ['action' => 'close', $request->id, '_method' => 'POST']]) ?>
-<?= $this->Form->control('confirmed_closed', ['type' => 'checkbox', 'label' => 'Confirmo que já encerrei esta Ordem de Serviço no TOTVS', 'required' => true]) ?>
-<?= $this->Form->button('Confirmar encerramento no TOTVS') ?><?= $this->Form->end() ?>
+<p>O serviço foi concluído. O encerramento deve ser realizado no TOTVS; o sistema identificará a mudança automaticamente.</p>
 </section>
 <?php endif; ?>
 <?php if ($request->status === \App\Domain\Enum\RequestStatus::ATENDIDA->value): ?><p class="message">Pedido de abertura atendido. Isso não significa que a Ordem de Serviço foi encerrada no TOTVS.</p><?php endif; ?>
@@ -101,6 +98,8 @@ $pending = in_array($request->status, [\App\Domain\Enum\RequestStatus::AGUARDAND
         'SERVICE_ONGOING' => 'informou que o serviço continua em andamento.',
         'SERVICE_COMPLETED' => 'informou que o serviço foi concluído e solicitou o encerramento ao PCM.',
         'TOTVS_OS_CLOSED' => 'confirmou o encerramento da Ordem de Serviço no TOTVS.',
+        'TOTVS_AUTO_CLOSED' => 'identificou que a O.S. ' . ($audit->new_values['totvs_os_number'] ?? '') . ' foi encerrada no TOTVS. Solicitação encerrada automaticamente.',
+        'TOTVS_STATUS_SYNCED' => 'atualizou o acompanhamento da O.S. ' . ($audit->new_values['totvs_os_number'] ?? '') . ' conforme a consulta ao TOTVS.',
         'PCM_FLOW_SIMPLIFIED' => 'retornou o pedido à fila do PCM após a simplificação do atendimento.',
         'DUPLICATE_CONFIRMED' => 'Novo pedido confirmado apesar de solicitações ativas para o equipamento. ' . ($audit->new_values['reason'] ?? ''),
         'OS_DISPOSITION_CHANGED' => 'Orientação atualizada: ' . \App\Domain\Enum\OsDisposition::from($audit->new_values['os_disposition'])->heading() . '.',

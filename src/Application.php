@@ -90,6 +90,7 @@ class Application extends BaseApplication implements \Authentication\Authenticat
             // available as array through $request->getData()
             // https://book.cakephp.org/5/en/controllers/middleware.html#body-parser-middleware
             ->add(new BodyParserMiddleware())
+            ->add(new \App\Middleware\IdleSessionMiddleware())
             ->add(new \App\Middleware\LoginCsrfRecoveryMiddleware())
 
             // Cross Site Request Forgery (CSRF) Protection Middleware
@@ -148,6 +149,9 @@ class Application extends BaseApplication implements \Authentication\Authenticat
     public function services(ContainerInterface $container): void
     {
         $container->add(\App\Service\AssetsLookupInterface::class, \App\Service\TotvsAssetsService::class);
+        $container->add(\App\Service\OrdersLookupInterface::class, \App\Service\TotvsOrdersService::class);
+        $container->add(\App\Service\TotvsOrderSyncService::class)->addArgument(\App\Service\OrdersLookupInterface::class);
+        $container->add(\App\Command\SyncTotvsOrdersCommand::class)->addArgument(\App\Service\TotvsOrderSyncService::class);
         $container->add(\App\Service\RequestCreationService::class)
             ->addArgument(\App\Service\AssetsLookupInterface::class);
         // Allow your Tables to be dependency injected

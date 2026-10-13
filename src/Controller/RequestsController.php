@@ -39,7 +39,8 @@ class RequestsController extends AppController
             }
         }
         $types = MaintenanceType::options();
-        $this->set(compact('request', 'types'));
+        $sectors = $this->fetchTable('Sectors')->find('list')->where(['active' => true])->orderBy(['name' => 'ASC'])->toArray();
+        $this->set(compact('request', 'types', 'sectors'));
 
         return null;
     }
@@ -89,11 +90,6 @@ class RequestsController extends AppController
     public function cancel(string $id): mixed
     {
         return $this->handle($id, 'cancel', $this->request->getData('reason'));
-    }
-
-    public function close(string $id): mixed
-    {
-        return $this->handle($id, 'close', $this->request->getData('confirmed_closed'));
     }
 
     public function work(): void
@@ -168,7 +164,6 @@ class RequestsController extends AppController
             (new \App\Service\RequestHandlingService())->handle((int)$id, (int)$identity->getIdentifier(), $action, $value);
             $this->Flash->success(match ($action) {
                 'link' => 'O.S. TOTVS vinculada.', 'cancel' => 'Solicitação cancelada.',
-                'close' => 'Encerramento da Ordem de Serviço confirmado.',
             });
         } catch (\InvalidArgumentException | \Cake\Http\Exception\ConflictException $e) {
             $this->Flash->error($e->getMessage());

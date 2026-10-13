@@ -74,7 +74,7 @@ class SubdirectoryTest extends TestCase
     public function testPrivateLinksFormsAutocompleteAndAttachmentsUseSubdirectory(): void
     {
         $this->session(['Auth' => 1]); $this->get($this->url('/solicitacoes/nova')); $this->assertResponseOk();
-        foreach (['/api/bens', '/api/setores', '/api/solicitacoes-ativas', '/solicitacoes/nova', '/sair', '/meu-perfil', '/usuarios'] as $path) {
+        foreach (['/api/bens', '/api/solicitacoes-ativas', '/solicitacoes/nova', '/sair', '/meu-perfil', '/usuarios', '/sessao/atividade'] as $path) {
             $this->assertResponseContains(self::BASE . $path);
         }
         $this->assertResponseContains(self::BASE . '/js/request-form.js');

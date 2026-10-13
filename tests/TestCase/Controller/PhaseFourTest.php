@@ -100,6 +100,19 @@ class PhaseFourTest extends TestCase
         }
     }
 
+    public function testFifteenMegabyteImageIsAllowedAndCameraUploadJoinsGallery(): void
+    {
+        $small = $this->photo()->getStream()->__toString();
+        $content = str_pad($small, 15 * 1024 * 1024, "\0");
+        $accepted = (new AttachmentService())->validate([$this->photo('grande.png', strlen($content), $content)]);
+        $this->assertCount(1, $accepted); $this->assertSame(15 * 1024 * 1024, $accepted[0]['size']);
+        $this->session(['Auth' => 3]); $this->enableCsrfToken('pcm_solicitacao_os_csrf');
+        $data = $this->data([$this->photo('galeria.png')]); $data['camera_photos'] = [$this->photo('camera.png')];
+        $this->post('/solicitacoes/nova', $data); $this->assertResponseCode(302);
+        $photos = TableRegistry::getTableLocator()->get('RequestAttachments')->find()->orderBy(['id' => 'ASC'])->all()->toList();
+        $this->assertSame(['galeria.png', 'camera.png'], array_column($photos, 'original_name'));
+    }
+
     public function testInvalidUploadCannotCreatePartialRequest(): void
     {
         $this->session(['Auth' => 3]);

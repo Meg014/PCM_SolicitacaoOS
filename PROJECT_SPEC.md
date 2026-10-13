@@ -247,3 +247,11 @@ Toda consulta deve estar isolada em serviço de integração e ser somente leitu
 
 ## 18. Critério de sucesso da V1
 O papel deixa de ser necessário para abrir uma solicitação, o PCM consegue acompanhar tudo em uma fila, o solicitante acompanha o andamento e o número da OS criada, e o histórico não se perde.
+
+## 19. Revisão vigente — acompanhamento automático
+- Sessão expira em 20 minutos de inatividade humana; polling da fila não renova o prazo.
+- Mão de obra é select obrigatório de cadastros ativos, separado do setor do funcionário.
+- Vínculo da O.S. continua manual. Comando sync_totvs_orders consulta somente O.S. vinculadas em acompanhamento ativo, por SELECT limitado em lote, para cron recomendado a cada 2 minutos (agendamento manual).
+- dbo.STJ010 identifica O.S. por TJ_ORDEM/TJ_FILIAL/Bem TJ_CODBEM. Referência: L/N aberta, L/S encerrada em TJ_SITUACA/TJ_TERMINO. Ausência, divergência, ambiguidade e status desconhecido nunca encerram o pedido.
+- Somente abertura permanece Atendida; os outros fluxos acompanham o TOTVS, aberta como Serviço em andamento e encerrada como Encerrada, com auditoria Sistema e data de detecção. Confirmação manual local de encerramento removida. Este sistema nunca encerra ou escreve no TOTVS.
+- Número da O.S. clicável em Relatórios para consulta autorizada em tempo real. Fotos: câmera/galeria, 5 no total, até 15 MB cada, com armazenamento privado e validações de conteúdo existentes.

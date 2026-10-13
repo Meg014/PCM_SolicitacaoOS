@@ -50,15 +50,6 @@ class RequestHandlingService
                 };
                 $changes = ['status' => $state->value, 'totvs_os_number' => trim($value), 'os_linked_by' => $actorId, 'os_linked_at' => $now];
                 $event = 'TOTVS_OS_LINKED';
-            } elseif ($action === 'close') {
-                if ($request->flow !== \App\Domain\Enum\RequestFlow::ACOMPANHAMENTO->value || $request->status !== RequestStatus::AGUARDANDO_ENCERRAMENTO->value) {
-                    throw new ConflictException('Confirme o encerramento somente após a conclusão do serviço.');
-                }
-                if (!in_array($value, [true, 1, '1'], true)) {
-                    throw new \InvalidArgumentException('Confirme que você já encerrou esta Ordem de Serviço no TOTVS.');
-                }
-                $changes = ['status' => RequestStatus::ENCERRADA->value, 'closed_by' => $actorId, 'closed_at' => $now];
-                $event = 'TOTVS_OS_CLOSED';
             } elseif ($action === 'cancel') {
                 if (!in_array($request->status, RequestStatus::activeValues(), true)) {
                     throw new ConflictException('Esta solicitação já foi encerrada. O cancelamento não altera a O.S. no TOTVS.');

@@ -32,6 +32,14 @@ class OsDispositionTest extends TestCase
         $fake->method('find')->willReturn(['code' => 'BEM02', 'branch' => '01', 'description' => 'Motor']);
         return $fake;
     }
+    private function syncClosed(int $id): void
+    {
+        $request = TableRegistry::getTableLocator()->get('ServiceRequests')->get($id);
+        $fake = $this->createMock(\App\Service\OrdersLookupInterface::class);
+        $fake->method('batch')->willReturn([['number' => $request->totvs_os_number, 'branch' => $request->asset_branch,
+            'asset_code' => $request->asset_code, 'situation' => 'L', 'finished' => 'S']]);
+        (new \App\Service\TotvsOrderSyncService($fake))->sync();
+    }
 
     private function data(OsDisposition $choice): array
     {
@@ -89,8 +97,8 @@ class OsDispositionTest extends TestCase
         $this->assertSame('MANTER_ABERTA', $audit->old_values['os_disposition']); $this->assertSame(2, $audit->user_id);
         $this->session(['Auth' => 1]); $this->get('/solicitacoes/' . $request->id);
         $this->assertResponseContains('Orientação atualizada: O.S. PODE SER ENCERRADA');
-        $this->assertResponseContains('Confirmar encerramento no TOTVS');
-        (new RequestHandlingService())->handle($request->id, 1, 'close', '1');
+        $this->assertResponseNotContains('Confirmar encerramento no TOTVS');
+        $this->syncClosed($request->id);
         $this->assertSame('ENCERRADA', TableRegistry::getTableLocator()->get('ServiceRequests')->get($request->id)->status);
     }
 
@@ -104,8 +112,8 @@ class OsDispositionTest extends TestCase
         $this->assertSame('AGUARDANDO_ENCERRAMENTO', TableRegistry::getTableLocator()->get('ServiceRequests')->get($request->id)->status);
         $this->session(['Auth' => 2]); $this->enableCsrfToken('pcm_solicitacao_os_csrf');
         $this->post('/solicitacoes/' . $request->id . '/confirmar-encerramento', ['confirmed_closed' => '1']);
-        $this->assertResponseCode(403);
-        $this->session(['Auth' => 1]); $this->post('/solicitacoes/' . $request->id . '/confirmar-encerramento', ['confirmed_closed' => '1']);
+        $this->assertResponseCode(404);
+        $this->syncClosed($request->id);
         $this->assertSame('ENCERRADA', TableRegistry::getTableLocator()->get('ServiceRequests')->get($request->id)->status);
     }
 
@@ -122,7 +130,7 @@ class OsDispositionTest extends TestCase
         $this->assertSame(17, TableRegistry::getTableLocator()->get('ServiceRequests')->find()->count());
     }
 
-    public function testQueueGroupsAllActiveStatusesAheadOfTerminalAndUsesNewestWithinEach(): void
+    public function testQueueOrdersActivityAcrossActiveStatusesAndExcludesTerminal(): void
     {
         $table = TableRegistry::getTableLocator()->get('ServiceRequests');
         $priority = ['AGUARDANDO_ENCERRAMENTO', 'AGUARDANDO_PCM', 'EM_ANALISE', 'OS_ABERTA', 'EM_EXECUCAO', 'ATENDIDA', 'ENCERRADA', 'CANCELADA'];
@@ -142,8 +150,8 @@ class OsDispositionTest extends TestCase
         }
         $this->session(['Auth' => 1]); $this->get('/painel?unit=USINA'); $this->assertResponseOk();
         preg_match_all('/>FILA-(\d+)<\/a>/', (string)$this->_response->getBody(), $matches);
-        // O.S. aberta e execução compartilham a fila ordenada por atividade mais recente.
-        $expected = [11, 10, 13, 12, 19, 17, 18, 16];
+        // Nenhuma situação ativa recebe prioridade sobre a atividade mais recente.
+        $expected = [19, 17, 13, 11, 18, 16, 12, 10];
         $this->assertSame($expected, array_map('intval', $matches[1]));
         $this->get('/relatorios?unit=USINA&status=EM_EXECUCAO'); $this->assertResponseOk();
         $this->assertResponseContains('FILA-19'); $this->assertResponseNotContains('FILA-20');

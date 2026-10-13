@@ -34,7 +34,7 @@ final class ProtheusReadOnly extends Sqlserver
 
     public function prepare(Query|string $query): StatementInterface
     {
-        if (!is_string($query) || !TotvsAssetQueries::allows($query)) {
+        if (!is_string($query) || (!TotvsAssetQueries::allows($query) && !\App\Service\TotvsOrderQueries::allows($query))) {
             throw new LogicException('Protheus somente leitura: consulta fora da lista permitida.');
         }
 

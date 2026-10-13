@@ -16,7 +16,9 @@ class RequestCreationService
     public function create(array $data, int $userId): ServiceRequest
     {
         $attachments = new AttachmentService();
-        $files = $attachments->validate($data['photos'] ?? null);
+        $gallery = $data['photos'] ?? []; $camera = $data['camera_photos'] ?? [];
+        if (!is_array($gallery) || !is_array($camera)) { throw new UploadException('Selecione fotos válidas para anexar.'); }
+        $files = $attachments->validate(array_merge($gallery, $camera));
         $locator = TableRegistry::getTableLocator();
         $requests = $locator->get('ServiceRequests');
         // Uma única escolha no formulário; flow permanece apenas para compatibilidade interna.

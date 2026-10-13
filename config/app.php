@@ -434,10 +434,10 @@ return [
     'Session' => [
         'defaults' => 'cake',
         'cookie' => 'pcm_solicitacao_os_session',
-        'timeout' => 0,
+        'timeout' => 20,
         'ini' => [
-            'session.gc_probability' => 0,
-            'session.gc_maxlifetime' => 2147483647,
+            'session.gc_probability' => 1,
+            'session.gc_maxlifetime' => 86400,
             'session.cookie_lifetime' => 0,
             'session.cookie_httponly' => 1,
             'session.cookie_samesite' => 'Lax',

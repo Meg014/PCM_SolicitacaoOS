@@ -154,7 +154,7 @@ class HomologationTest extends TestCase
         $this->session(['Auth' => 4]); $this->get('/solicitacoes/2/novo-apontamento'); $this->assertRedirect('/entrar');
     }
 
-    public function testNewActivityElevatesTrackingQueueAndPendingPcmStaysFirst(): void
+    public function testNewActivityElevatesTrackingQueueWithoutStatusPriority(): void
     {
         $this->track(1); $this->track(2);
         $table = $this->table('ServiceRequests');
@@ -169,10 +169,45 @@ class HomologationTest extends TestCase
         $this->assertResponseContains('NOVO APONTAMENTO');
         $table->updateAll(['status' => 'AGUARDANDO_ENCERRAMENTO'], ['id' => 2]);
         $this->get('/painel'); $body = (string)$this->_response->getBody();
-        $this->assertLessThan(strpos($body, '>SOL-2026-000001</a>'), strpos($body, '>SOL-2026-000002</a>'));
+        $this->assertLessThan(strpos($body, '>SOL-2026-000002</a>'), strpos($body, '>SOL-2026-000001</a>'));
         $table->updateAll(['status' => 'ENCERRADA'], ['id' => 2]);
         $this->get('/painel'); $body = (string)$this->_response->getBody();
         $this->assertResponseContains('SOL-2026-000001'); $this->assertResponseNotContains('SOL-2026-000002');
+    }
+
+    public function testCreationAndItemsUseLatestActivityInPageAndPollingWithoutBadgePriority(): void
+    {
+        $table = $this->table('ServiceRequests');
+        $table->getConnection()->execute("SELECT setval(pg_get_serial_sequence('service_requests', 'id'), (SELECT MAX(id) FROM service_requests))");
+        $creation = new RequestCreationService($this->assets());
+        $this->session(['Auth' => 1]);
+        $assertOrder = function (array $numbers, bool $badge): void {
+            foreach (['/painel', '/painel/atualizacao', '/painel/atualizacao?sort=created_at&direction=asc'] as $url) {
+                $this->get($url); $this->assertResponseOk();
+                preg_match_all('/>(SOL-\d{4}-\d{6})<\/a>/', (string)$this->_response->getBody(), $matches);
+                $this->assertSame($numbers, $matches[1]);
+                if ($badge) $this->assertResponseContains('NOVO APONTAMENTO');
+            }
+        };
+        try {
+            \Cake\I18n\DateTime::setTestNow('2026-10-13 14:00:00');
+            $first = $creation->create($this->data(), 3);
+            $this->assertEquals($first->created_at, $first->last_activity_at);
+            \Cake\I18n\DateTime::setTestNow('2026-10-13 14:10:00');
+            $second = $creation->create($this->data(), 3);
+            $legacy = ['SOL-2026-000002', 'SOL-2026-000001'];
+            $assertOrder([$second->number, $first->number, ...$legacy], false);
+            $this->track($first->id);
+            \Cake\I18n\DateTime::setTestNow('2026-10-13 14:20:00');
+            (new RequestExecutionService())->handle($first->id, 2, 'items', [$this->item()]);
+            $this->assertSame('14:20', $table->get($first->id)->last_activity_at->format('H:i'));
+            $assertOrder([$first->number, $second->number, ...$legacy], true);
+            \Cake\I18n\DateTime::setTestNow('2026-10-13 14:25:00');
+            $third = $creation->create($this->data(), 3);
+            $assertOrder([$third->number, $first->number, $second->number, ...$legacy], true);
+        } finally {
+            \Cake\I18n\DateTime::setTestNow();
+        }
     }
 
     public function testUserDepartmentRequiredAndLegacyStillWorksWithoutInventedMapping(): void
@@ -221,7 +256,7 @@ class HomologationTest extends TestCase
         }
         $this->get('/solicitacoes/nova'); $this->assertResponseOk();
         $this->assertResponseNotContains('class="button header-request-shortcut"');
-        foreach (['unit', 'maintenance_type', 'description', 'os_disposition', 'asset_label', 'sector_label'] as $field) {
+        foreach (['unit', 'maintenance_type', 'description', 'os_disposition', 'asset_label', 'sector_id'] as $field) {
             $this->assertMatchesRegularExpression('/<(?:input|select|textarea)[^>]*name="' . $field . '"[^>]*required/s', (string)$this->_response->getBody());
         }
     }

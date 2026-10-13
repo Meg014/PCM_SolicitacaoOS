@@ -31,14 +31,7 @@ $text = fn($value) => is_scalar($value) ? (string)$value : '';
 <?= $this->Form->control('duplicate_reason', ['label' => 'Motivo do novo pedido (opcional)', 'type' => 'textarea', 'maxlength' => 2000]) ?>
 </section>
 <?= $this->Form->error('confirm_existing') ?>
-<div class="autocomplete" data-lookup="<?= h($this->Url->build(['controller' => 'Lookups', 'action' => 'sectors'])) ?>" data-kind="sector">
-    <?= $this->Form->control('sector_label', ['label' => 'Mão de obra', 'value' => $text($data['sector_label'] ?? ''), 'required' => true, 'autocomplete' => 'off', 'role' => 'combobox', 'aria-autocomplete' => 'list', 'aria-expanded' => 'false', 'aria-controls' => 'sector-results', 'aria-describedby' => 'sector-help', 'data-search' => true]) ?>
-    <?= $this->Form->hidden('sector_id', ['value' => $text($data['sector_id'] ?? ''), 'data-selected' => true]) ?>
-    <?= $this->Form->error('sector_id') ?>
-    <p id="sector-help" class="help">Pesquise pelo nome ou código e selecione uma mão de obra ativa.</p>
-    <div id="sector-results" class="lookup-results" role="listbox" aria-label="Mãos de obra encontradas" hidden></div>
-    <p class="help lookup-message" aria-live="polite"></p>
-</div>
+<?= $this->Form->control('sector_id', ['label' => 'Mão de obra', 'options' => $sectors, 'empty' => 'Selecione a Mão de obra', 'required' => true]) ?>
 <?= $this->Form->control('maintenance_type', ['label' => 'Tipo de manutenção', 'options' => $types, 'empty' => 'Selecione o tipo', 'required' => true]) ?>
 <?= $this->Form->control('description', ['label' => 'Descrição do serviço / problema', 'type' => 'textarea', 'rows' => 4, 'maxlength' => 5000, 'required' => true]) ?>
 <fieldset id="os-disposition"><legend>Como esta Ordem de Serviço deve seguir após a abertura?</legend>
@@ -54,8 +47,11 @@ $text = fn($value) => is_scalar($value) ? (string)$value : '';
     <?= $this->Form->error('items') ?>
     <?= $this->element('execution_items') ?>
 </fieldset>
-<?= $this->Form->control('photos[]', ['type' => 'file', 'label' => 'Fotos (opcional)', 'multiple' => true, 'accept' => 'image/jpeg,image/png,image/webp', 'id' => 'photos', 'aria-describedby' => 'photos-help']) ?>
-<p id="photos-help" class="help" aria-live="polite">Até 5 fotos JPG, PNG ou WebP, com até 5 MB cada. No celular, você pode escolher fotos ou usar a câmera. Se ocorrer um erro, selecione as fotos novamente.</p>
+<?= $this->Form->control('camera_photos[]', ['type' => 'file', 'label' => 'Tirar foto (opcional)', 'multiple' => true, 'accept' => 'image/jpeg,image/png,image/webp', 'capture' => 'environment', 'id' => 'camera-photos', 'aria-describedby' => 'photos-help']) ?>
+<?= $this->Form->button('Limpar fotos da câmera', ['type' => 'button', 'id' => 'clear-camera', 'class' => 'secondary']) ?>
+<p class="help">Use a câmera traseira quando disponível. Se o navegador não oferecer câmera, selecione da galeria.</p>
+<?= $this->Form->control('photos[]', ['type' => 'file', 'label' => 'Selecionar da galeria (opcional)', 'multiple' => true, 'accept' => 'image/jpeg,image/png,image/webp', 'id' => 'photos', 'aria-describedby' => 'photos-help']) ?>
+<p id="photos-help" class="help" aria-live="polite">Até 5 fotos JPG, PNG ou WebP, com até 15 MB cada. No celular, você pode escolher fotos ou usar a câmera. Se ocorrer um erro, selecione as fotos novamente.</p>
 <?= $this->Form->button('Enviar solicitação') ?>
 <?= $this->Form->end() ?>
 </section>

@@ -35,13 +35,23 @@ class HomeController extends AppController
         if ($this->request->is('post')) {
             $this->Flash->error('Usuário, e-mail ou senha incorretos, ou conta desativada. Confira os dados e tente novamente.');
         }
+        elseif ($this->request->getSession()->read('AuthActivity.expired')) {
+            $this->Flash->error('Sua sessão expirou por inatividade. Entre novamente para continuar.');
+        }
     }
 
     public function logout(): mixed
     {
         $this->request->allowMethod(['post']);
         $this->Authentication->logout();
+        $this->request->getSession()->delete('AuthActivity');
 
         return $this->redirect(['controller' => 'Home', 'action' => 'login']);
+    }
+
+    public function activity(): mixed
+    {
+        $this->request->allowMethod(['post']);
+        return $this->response->withStatus(204)->withHeader('Cache-Control', 'no-store');
     }
 }

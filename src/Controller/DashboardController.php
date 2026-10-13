@@ -55,14 +55,14 @@ class DashboardController extends AppController
         $totals = array_column($grouped, 'total', 'status');
         foreach ($states as $state) { $statuses[$state->value] = $state->label(); $counts[$state->value] = (int)($totals[$state->value] ?? 0); }
         $query = $table->find()->contain(['Users', 'Sectors'])->where(['ServiceRequests.status IN' => array_keys($statuses)])
-            ->orderBy("CASE ServiceRequests.status WHEN 'AGUARDANDO_ENCERRAMENTO' THEN 0 WHEN 'AGUARDANDO_PCM' THEN 1 ELSE 2 END ASC")
+            // Registros antigos sem atividade registrada usam a criação como atividade inicial.
             ->orderBy('COALESCE(ServiceRequests.last_activity_at, ServiceRequests.created_at) DESC')
             ->orderBy(['ServiceRequests.id' => 'DESC']);
-        try { $requests = $this->paginate($query, ['limit' => 20, 'maxLimit' => 20]); }
+        try { $requests = $this->paginate($query, ['limit' => 20, 'maxLimit' => 20, 'allowedParameters' => ['page']]); }
         catch (\Cake\Http\Exception\NotFoundException $e) {
             // Uma página pode desaparecer enquanto trabalhos são encerrados.
             $this->setRequest($this->request->withQueryParams(['page' => '1']));
-            $requests = $this->paginate($query, ['limit' => 20, 'maxLimit' => 20]);
+            $requests = $this->paginate($query, ['limit' => 20, 'maxLimit' => 20, 'allowedParameters' => ['page']]);
             $this->response = $this->response->withHeader('X-Queue-Page', '1');
         }
         $this->set(compact('requests', 'counts', 'statuses'));

@@ -364,7 +364,7 @@ class RequestsControllerTest extends TestCase
     {
         $this->session(['Auth' => 3]); $this->get('/solicitacoes/nova'); $this->assertResponseOk();
         $body = (string)$this->_response->getBody(); $previous = -1;
-        foreach (['name="unit"', 'name="asset_label"', 'name="sector_label"', 'name="maintenance_type"',
+        foreach (['name="unit"', 'name="asset_label"', 'name="sector_id"', 'name="maintenance_type"',
             'name="description"', 'name="os_disposition"', 'id="execution-initial"', 'id="photos"', '>Enviar solicitação<'] as $field) {
             $position = strpos($body, $field);
             $this->assertNotFalse($position, $field);

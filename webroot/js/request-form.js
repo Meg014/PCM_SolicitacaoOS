@@ -2,17 +2,38 @@
 
 const photos = document.getElementById('photos');
 if (photos) {
+    const camera = document.getElementById('camera-photos');
     const help = document.getElementById('photos-help');
     const originalHelp = help.textContent;
-    photos.addEventListener('change', () => {
-        const files = [...photos.files];
+    let cameraFiles = [];
+    const clearCamera = document.getElementById('clear-camera');
+    const validatePhotos = () => {
+        const files = [...photos.files, ...(camera?.files || [])];
         const message = files.length > 5 ? 'Selecione no máximo 5 fotos.'
-            : files.some(file => file.size > 5 * 1024 * 1024) ? 'Cada foto deve ter até 5 MB.'
+            : files.some(file => file.size > 15 * 1024 * 1024) ? 'Cada foto deve ter até 15 MB.'
             : files.some(file => !/\.(jpe?g|png|webp)$/i.test(file.name)) ? 'Use fotos JPG, PNG ou WebP.' : '';
         photos.setCustomValidity(message);
+        if (camera) camera.setCustomValidity(message);
         help.textContent = message || (files.length ? files.length + ' foto(s) selecionada(s). ' + originalHelp : originalHelp);
         if (message) photos.reportValidity();
+        if (clearCamera) clearCamera.disabled = !camera?.files.length;
+    };
+    photos.addEventListener('change', validatePhotos);
+    if (camera) camera.addEventListener('change', () => {
+        const incoming = [...camera.files];
+        if (typeof DataTransfer === 'function') {
+            try {
+                const transfer = new DataTransfer();
+                [...cameraFiles, ...incoming].forEach(file => transfer.items.add(file));
+                camera.files = transfer.files; cameraFiles = [...transfer.files];
+            } catch (_) { cameraFiles = incoming; }
+        } else { cameraFiles = incoming; }
+        validatePhotos();
     });
+    if (clearCamera) {
+        clearCamera.disabled = true;
+        clearCamera.addEventListener('click', () => { camera.value = ''; cameraFiles = []; validatePhotos(); });
+    }
 }
 
 document.querySelectorAll('.autocomplete').forEach(group => {
@@ -241,7 +262,7 @@ document.addEventListener('invalid', event => {
     if (!field.setCustomValidity || !field.required || field.disabled) return;
     if (field.value.trim() !== '') return;
     const messages = {unit: 'Selecione a unidade.', asset_label: 'Pesquise e selecione um equipamento da lista.',
-        sector_label: 'Pesquise e selecione uma mão de obra da lista.', maintenance_type: 'Selecione o tipo de manutenção.',
+        sector_id: 'Selecione a Mão de obra.', maintenance_type: 'Selecione o tipo de manutenção.',
         description: 'Descreva o serviço ou problema.', os_disposition: 'Escolha como a Ordem de Serviço deve seguir.'};
     const itemMessages = {executor: 'Informe o executante.', service_date: 'Informe a data do serviço.',
         start_time: 'Informe a hora inicial.', end_time: 'Informe a hora final.', description: 'Descreva este apontamento.'};

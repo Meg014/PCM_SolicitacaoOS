@@ -85,7 +85,7 @@ Esta fase não valida a existência da OS no TOTVS nem altera dados externos.
 Execute php bin/cake.php migrations migrate para aplicar AddRequestHandling.
 
 ## Fase 4 — fotos, indicadores e relatórios
-Fotos são opcionais na criação: até 5 imagens JPG, PNG ou WebP de até 5 MB.
+Fotos são opcionais na criação: até 5 imagens JPG, PNG ou WebP de até 15 MB.
 Não são aceitos executáveis, SVG ou HEIC. Metadados e auditoria ficam no
 PostgreSQL; arquivos ficam em storage/attachments, fora de webroot.
 Inclua essa pasta nos backups e permita escrita apenas ao processo PHP.
@@ -97,8 +97,9 @@ O período considera a criação do pedido; a média até vínculo usa somente
 pedidos com data da OS vinculada. O relatório é tabular e paginado, sem CSV/PDF.
 
 Execute php bin/cake.php migrations migrate para aplicar CreateRequestAttachments.
-Configuração PHP mínima para estes uploads: upload_max_filesize=5M,
-post_max_size=30M e max_file_uploads=5. Não há dependência adicional do TOTVS.
+Configuração PHP para estes uploads: upload_max_filesize=15M,
+post_max_size=80M e max_file_uploads=10 (câmera e galeria; a aplicação aceita 5 imagens no total).
+Nginx deve usar client_max_body_size 80m. Não há escrita no TOTVS.
 
 ## Acesso e layout
 Acesso inicial: todas as contas devem definir senha pessoal em /alterar-senha
@@ -208,3 +209,51 @@ Cookies são HttpOnly, SameSite=Lax e Secure em HTTPS (inclusive CSRF); configur
 APP_FULL_BASE_URL com HTTPS na produção. Cookie de sessão permanece válido até fechar o
 navegador; logout manual e bloqueio de contas continuam funcionando. Mudança do nome/caminho
 do cookie nesta atualização pode exigir um novo login na primeira utilização.
+
+## Automação de O.S. TOTVS e sessão de 20 minutos
+Execute `php bin/cake.php migrations migrate` para aplicar AddTotvsOrderSync e
+`php bin/cake.php cache clear_all` para atualizar metadados após publicar.
+
+O PCM continua criando a O.S. no TOTVS e vinculando seu número manualmente.
+Acompanhar: executar `php bin/cake.php sync_totvs_orders` a cada 2 minutos.
+Nenhum cron foi criado automaticamente. Exemplo a adaptar ao servidor:
+
+    */2 * * * * cd /var/www/pcm-solicitacao-os && /usr/bin/php bin/cake.php sync_totvs_orders >> logs/totvs-sync-cron.log 2>&1
+
+A sincronização consulta apenas números vinculados em trabalhos ativos com acompanhamento,
+em lotes de até 50. Usa dbo.STJ010: TJ_ORDEM, TJ_FILIAL, TJ_CODBEM, TJ_SITUACA e TJ_TERMINO,
+excluindo D_E_L_E_T_='*'. A regra da referência é L/N = aberta e L/S = encerrada.
+C/P, outros códigos, O.S. ausente, filial/Bem divergentes ou identidade duplicada são inconclusivos:
+não provocam encerramento nem mudança de estado. Erros são registrados sem credenciais/query.
+Login e consulta externos têm timeout de 5 segundos; todos os SQL pertencem à allowlist SELECT.
+
+Filial é confirmada com o Bem e armazenada em totvs_os_branch. Para Bem de cadastro compartilhado
+(filial vazia), exige-se resultado único; não há escolha de filial arbitrária.
+Somente abertura permanece Atendida e não entra na sincronização. Nos outros dois fluxos,
+TOTVS aberto mantém Serviço em andamento e permite apontamentos; TOTVS encerrado gera Encerrada,
+closed_at/totvs_closed_detected_at com o horário da detecção e auditoria Sistema/Sincronização TOTVS.
+A orientação de poder encerrar e o clique em Serviço concluído continuam no histórico, mas
+não fecham uma O.S. no TOTVS. Confirmação manual local de encerramento foi removida.
+Operações inconclusivas/indisponíveis preservam o estado atual; reexecução sem mudança não duplica auditoria.
+
+O número da O.S. em Relatórios abre detalhe interno sob demanda, somente para perfis com acesso
+a relatórios. Exibe serviço, Bem, descrição, datas, filial, situação, término, área e centro de custo.
+Nomes vêm de ST9010/ST4010, priorizando a filial local e admitindo cadastro compartilhado vazio;
+cadastros ambíguos não são apresentados como identificações confirmadas. Não há cópia integral para PostgreSQL.
+
+Mão de obra usa select obrigatório somente com opções ativas; o cadastro administrativo é preservado.
+Câmera e galeria têm entradas separadas. capture=environment favorece câmera traseira quando suportado;
+no navegador compatível, fotos sucessivas da câmera são acumuladas e podem ser limpas. O limite é
+5 imagens no total de até 15 MB cada, com extensão, MIME real, conteúdo e armazenamento privado validados.
+Configure PHP/FPM com upload_max_filesize=15M, post_max_size=80M e max_file_uploads=10;
+Nginx com client_max_body_size 80m. Reinicie/recarregue o serviço após ajustar. O PHP local consultado
+ainda usa post_max_size=40M, insuficiente para cinco imagens no limite simultaneamente.
+
+A configuração vigente substitui a sessão sem timeout: Session.timeout=20. IdleSessionMiddleware
+mantém AuthActivity.last_at como relógio humano e desliga o relógio HTTP nativo por requisição,
+pois ele contaria polling como atividade. Polling nunca renova esse relógio; acessos normais renovam.
+Interações reais (toque, teclado, digitação, rolagem) podem enviar POST /sessao/atividade com CSRF,
+no máximo uma vez por minuto; não existe timer de renovação automática. Aos 20 minutos, Auth é
+invalidado e há redirecionamento/mensagem natural de expiração. Primeiro acesso, inatividade,
+desativação de conta e logout seguem as proteções existentes. Cookies HttpOnly, Secure em HTTPS
+e SameSite=Lax permanecem; arquivos de sessão ficam isolados em tmp/sessions com GC habilitado.

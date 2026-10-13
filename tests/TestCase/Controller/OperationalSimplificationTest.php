@@ -81,7 +81,9 @@ class OperationalSimplificationTest extends TestCase
         $execution->handle(1, 2, 'items', [$this->item()]);
         $execution->handle(1, 3, 'ongoing');
         $execution->handle(1, 2, 'complete');
-        $handling->handle(1, 1, 'close', true);
+        $fake = $this->createMock(\App\Service\OrdersLookupInterface::class);
+        $fake->method('batch')->willReturn([['number' => 'SNAPSHOT-OS', 'branch' => '01', 'asset_code' => 'BEM01', 'situation' => 'L', 'finished' => 'S']]);
+        (new \App\Service\TotvsOrderSyncService($fake))->sync();
         $audits = $this->table('RequestAudits')->find()->where(['request_id' => 1])->orderBy(['id' => 'ASC'])->all()->toList();
         $this->assertContains('TOTVS_OS_LINKED', array_column($audits, 'action'));
         $this->assertContains('EXECUTION_ITEMS_ADDED', array_column($audits, 'action'));
@@ -192,11 +194,11 @@ class OperationalSimplificationTest extends TestCase
         $this->assertResponseContains('SOL-2026-000001');
     }
 
-    public function testSessionHasNoIdleTimeoutAndRetainsSecurityConfiguration(): void
+    public function testSessionHasTwentyMinuteTimeoutAndRetainsSecurityConfiguration(): void
     {
         $config = Configure::read('Session');
-        $this->assertSame(0, $config['timeout']); $this->assertSame('cake', $config['defaults']);
-        $this->assertSame(0, $config['ini']['session.gc_probability']);
+        $this->assertSame(20, $config['timeout']); $this->assertSame('cake', $config['defaults']);
+        $this->assertSame(1, $config['ini']['session.gc_probability']);
         $this->assertSame(1, $config['ini']['session.cookie_httponly']);
         $this->assertSame('Lax', $config['ini']['session.cookie_samesite']);
         $this->assertSame(0, $config['ini']['session.cookie_lifetime']);
@@ -206,7 +208,7 @@ class OperationalSimplificationTest extends TestCase
             public function write(array|string $name, mixed $value = null): void { $this->lastTime = $value; }
             public function expired(): bool { return $this->_timedOut(); }
         };
-        $this->assertFalse($session->expired());
+        $this->assertTrue($session->expired());
     }
 
     public function testHttpsCsrfCookieKeepsSecureHttpOnlyAndSameSite(): void
