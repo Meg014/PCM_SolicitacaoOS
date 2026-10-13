@@ -213,6 +213,11 @@ Formato:
 - Fotos: entradas de câmera e galeria; capture environment com fallback nativo, acumulação quando DataTransfer disponível. Total máximo 5, 15 MB cada, validações anteriores mantidas. Servidor exige corpo de 80 MB e máximo de pelo menos 10 uploads para validar os dois inputs sem truncamento. PHP local tem post_max_size=40M: ajustar para cenário máximo.
 - Comando sync_totvs_orders pronto para cron a cada 2 minutos; nenhum agendamento foi instalado. TOTVS permanece exclusivamente SELECT, com parâmetros, allowlist e timeout. Indisponibilidade registra erro seguro e não interfere na aplicação web.
 
+## 2026-10-13 — Busca de Bens por descrição e situação real
+- Autocomplete pesquisa somente parte de T9_NOME, com collation CI_AI e parâmetros escapados, mantendo limite de 20 e apresentação atual. Código e filial continuam sendo a identidade da seleção, mas não entram na pesquisa textual.
+- SEARCH e FIND exigem T9_SITBEM = 'A', além de excluir registros deletados. Campo confirmado pela documentação TOTVS de Bens/Solicitação de Serviço e SELECT real em dbo.ST9010: A ativo, I inativo. Não se usa descrição/tag como regra de atividade. T9_SITMAN é uma situação distinta de manutenção, não acrescentada como restrição fora do escopo.
+- Solicitações antigas exibem snapshots locais sem revalidar atividade do Bem. Validação real limitada confirmou busca por descrição em maiúsculas/minúsculas e rejeição de seleção inativa, exclusivamente SELECT; testes automatizados usam fakes.
+
 ## 2026-10-13 — Fila por atividade recente
 - A fila ativa e o polling usam last_activity_at decrescente, sem prioridade por situação ou novo apontamento. IDs decrescentes desempatam horários iguais. Registros antigos sem last_activity_at usam created_at como atividade inicial; não é necessária nova migration. Criação, apontamentos, vínculo, cancelamento e mudanças operacionais já atualizam o campo. Consultas sem mudança não alteram a atividade.
 - A paginação aceita apenas page: parâmetros sort/direction não substituem a ordenação operacional. NOVO APONTAMENTO continua sendo somente destaque visual.

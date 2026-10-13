@@ -114,6 +114,24 @@ class RequestsControllerTest extends TestCase
         $this->assertSame(2, $this->requests()->find()->count());
     }
 
+    public function testInactiveAssetIsRejectedForCreationButSavedRequestRemainsVisible(): void
+    {
+        $fake = $this->createMock(AssetsLookupInterface::class);
+        $fake->expects($this->once())->method('search')->with('Bomba')->willReturn([]);
+        // O filtro real de situação torna o Bem salvo indisponível para novas seleções.
+        $fake->expects($this->once())->method('find')->with('BEM01', '01')->willReturn(null);
+        $this->mockService(AssetsLookupInterface::class, fn() => $fake);
+        $this->session(['Auth' => 3]);
+        $this->get('/api/bens?q=Bomba'); $this->assertResponseOk();
+        $this->assertSame([], json_decode((string)$this->_response->getBody(), true)['results']);
+        $this->submit($this->payload()); $this->assertResponseOk();
+        $this->assertResponseContains('Este equipamento não foi encontrado');
+        $this->assertSame(2, $this->requests()->find()->count());
+        $this->get('/solicitacoes/1'); $this->assertResponseOk();
+        $this->assertResponseContains('BEM01');
+        $this->assertResponseContains($this->requests()->get(1)->asset_description);
+    }
+
     public function testFreeTextCannotReplaceSelections(): void
     {
         $this->session(['Auth' => 3]);

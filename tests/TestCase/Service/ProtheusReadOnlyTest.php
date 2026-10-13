@@ -45,8 +45,9 @@ class ProtheusReadOnlyTest extends TestCase
         // Fake da consulta, sem conectar ao TOTVS: verifica SQL, parâmetros e preservação do retorno.
         $service = $this->getMockBuilder(TotvsAssetsService::class)->onlyMethods(['read'])->getMock();
         $service->expects($this->exactly(2))->method('read')->with(
-            $this->callback(fn($sql) => $sql === TotvsAssetQueries::SEARCH && substr_count($sql, 'COLLATE Latin1_General_100_CI_AI') === 2),
-            $this->callback(fn($params) => in_array($params['description_term'], ['%centrifuga%', '%CENTRÍFUGA%'], true) && $params['code_term'] === $params['description_term']),
+            $this->callback(fn($sql) => $sql === TotvsAssetQueries::SEARCH && substr_count($sql, 'COLLATE Latin1_General_100_CI_AI') === 1
+                && str_contains($sql, "b.T9_SITBEM = 'A'") && !str_contains($sql, ':code_term')),
+            $this->callback(fn($params) => in_array($params['description_term'], ['%centrifuga%', '%CENTRÍFUGA%'], true) && count($params) === 1),
         )->willReturn([['code' => 'CENT01', 'description' => 'Centrífuga', 'branch' => '01']]);
         foreach (['centrifuga', 'CENTRÍFUGA'] as $term) {
             $rows = $service->search($term);
@@ -54,5 +55,26 @@ class ProtheusReadOnlyTest extends TestCase
             $this->assertSame('CENT01', $rows[0]['code']);
             $this->assertSame('01', $rows[0]['branch']);
         }
+    }
+
+    public function testPartialDescriptionAndLiteralWildcardsKeepSearchBounded(): void
+    {
+        $service = $this->getMockBuilder(TotvsAssetsService::class)->onlyMethods(['read'])->getMock();
+        $service->expects($this->once())->method('read')->with(TotvsAssetQueries::SEARCH,
+            ['description_term' => '%AGITADOR TANQUE~%~_%'])
+            ->willReturn([['code' => 'AGT 30 001', 'description' => 'AGITADOR TANQUE%_ DE CAL 01', 'branch' => '01']]);
+        $this->assertSame('AGT 30 001', $service->search(' AGITADOR TANQUE%_ ')[0]['code']);
+        $this->assertStringContainsString('SELECT TOP (20)', TotvsAssetQueries::SEARCH);
+    }
+
+    public function testInactiveAssetCannotBeResolvedForNewSelection(): void
+    {
+        $service = $this->getMockBuilder(TotvsAssetsService::class)->onlyMethods(['read'])->getMock();
+        $service->expects($this->exactly(2))->method('read')->with(
+            $this->callback(fn($sql) => $sql === TotvsAssetQueries::FIND && str_contains($sql, "b.T9_SITBEM = 'A'")),
+            $this->callback(fn($params) => $params['branch'] === '01'),
+        )->willReturnOnConsecutiveCalls([['code' => 'ACTIVE', 'description' => 'Bem ativo', 'branch' => '01']], []);
+        $this->assertSame('ACTIVE', $service->find('ACTIVE', '01')['code']);
+        $this->assertNull($service->find('INACTIVE', '01'));
     }
 }

@@ -15,7 +15,7 @@ class TotvsAssetsService implements AssetsLookupInterface
         }
         $term = '%' . strtr($term, ['~' => '~~', '%' => '~%', '_' => '~_', '[' => '~[']) . '%';
 
-        return $this->read(TotvsAssetQueries::SEARCH, ['code_term' => $term, 'description_term' => $term]);
+        return $this->read(TotvsAssetQueries::SEARCH, ['description_term' => $term]);
     }
 
     public function find(string $code, string $branch): ?array
