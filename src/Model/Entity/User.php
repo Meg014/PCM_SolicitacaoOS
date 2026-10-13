@@ -20,9 +20,10 @@ class User extends Entity
         return (new DefaultPasswordHasher(['hashType' => PASSWORD_ARGON2ID]))->hash($password);
     }
 
-    protected function _setUsername(string $username): string
+    protected function _setUsername(?string $username): ?string
     {
-        return strtolower(trim($username));
+        $username = strtolower(trim($username ?? ''));
+        return $username === '' ? null : $username;
     }
 
     protected function _setEmail(?string $email): ?string

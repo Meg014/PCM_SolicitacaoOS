@@ -176,3 +176,9 @@ Formato:
 - Transação PostgreSQL com bloqueio da tabela users serializa verificação/criação. Qualquer ADMIN_PCM, mesmo inativo, torna o comando inócuo; não redefine nem reativa contas.
 - Erros CLI são genéricos, sem exceções/dados sensíveis. BOOTSTRAP_ADMIN_PASSWORD também mascarada pelo Debugger. README inclui coleta segura via PowerShell e limpeza das variáveis do processo.
 - Testes específicos: 5 testes / 48 asserções aprovados, incluindo duplicidade/inatividade, ambiente/confirmação, senha/hash/troca, dados inválidos/colisão e rollback se auditoria falhar. Sintaxe aprovada. Nenhum administrador real foi criado por esta revisão.
+## 2026-10-13 — Usuário/matrícula ou e-mail
+- Username e email opcionais individualmente, exigindo ao menos um dos dois. Nome e senha inicial continuam obrigatórios; senha em branco na edição continua mantendo o hash atual.
+- Migration AllowOptionalUsernames permite username NULL, preserva índice único e acrescenta CHECK users_login_identifier_required. Não altera os identificadores existentes nem fabrica matrículas.
+- User normaliza username vazio para NULL; UsersTable exige ao menos um identificador sobre a entidade completa ao salvar (inclusive edições parciais) e mantém unicidade de identificadores preenchidos, permitindo múltiplos NULL.
+- CreateAdmin utiliza a mesma regra: BOOTSTRAP_ADMIN_NAME/PASSWORD obrigatórios; USERNAME ou EMAIL, ou ambos. Hash, perfil, primeiro acesso, bloqueio de duplicidade e auditoria preservados.
+- Formulário administrativo indica os dois identificadores como opcionais individualmente e explica a exigência conjunta. Login permanece pelo identificador disponível; usuário inativo continua bloqueado.

@@ -245,4 +245,35 @@ class AdministrationTest extends TestCase
             $this->assertSame(0, $audits->find()->count());
         }
     }
+
+    public function testLoginByEmailWithoutUsernameAndInactiveEmailIsBlocked(): void
+    {
+        $users = TableRegistry::getTableLocator()->get('Users');
+        $users->updateAll(['username' => null], ['id' => 3]);
+        $this->postForm('/entrar', ['login' => ' USER3@EXAMPLE.TEST ', 'password' => 'SenhaTeste123!']);
+        $this->assertRedirect('/'); $this->assertSession(3, 'Auth');
+        $this->postForm('/sair', []);
+        $users->updateAll(['active' => false], ['id' => 3]);
+        $this->postForm('/entrar', ['login' => 'user3@example.test', 'password' => 'SenhaTeste123!']);
+        $this->assertResponseOk(); $this->assertSession(null, 'Auth');
+    }
+
+    public function testEmailOnlyUsersCanBeCreatedAndIdentifiersCannotBothBeRemoved(): void
+    {
+        $this->login(); $users = TableRegistry::getTableLocator()->get('Users');
+        foreach (['somente1@example.test', 'somente2@example.test'] as $email) {
+            $this->postForm('/usuarios/novo', ['name' => 'Apenas e-mail', 'email' => $email,
+                'password' => 'SenhaTeste123!', 'role' => UserRole::SOLICITANTE->value, 'active' => '1']);
+            $this->assertRedirect('/usuarios');
+            $this->assertNull($users->find()->where(['email' => $email])->firstOrFail()->username);
+        }
+        $user = $users->find()->where(['email' => 'somente1@example.test'])->firstOrFail();
+        $this->postForm('/usuarios/' . $user->id . '/editar', ['name' => 'Apenas e-mail', 'username' => '', 'email' => '',
+            'password' => '', 'role' => UserRole::SOLICITANTE->value, 'active' => '1']);
+        $this->assertResponseOk(); $this->assertResponseContains('Pelo menos um deles é necessário');
+        $this->assertSame('somente1@example.test', $users->get($user->id)->email);
+        $this->postForm('/usuarios/novo', ['name' => 'Duplicado', 'email' => 'SOMENTE1@EXAMPLE.TEST',
+            'password' => 'SenhaTeste123!', 'role' => UserRole::SOLICITANTE->value, 'active' => '1']);
+        $this->assertResponseOk(); $this->assertSame(6, $users->find()->count());
+    }
 }

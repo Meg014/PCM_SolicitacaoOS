@@ -49,7 +49,7 @@ class CreateAdminCommand extends Command
                 : 'Já existe um ADMIN_PCM, inclusive se inativo. Nenhum usuário foi criado ou alterado.');
             return self::CODE_SUCCESS;
         } catch (\InvalidArgumentException | \Cake\ORM\Exception\PersistenceFailedException $e) {
-            $io->err('Confira BOOTSTRAP_ADMIN_NAME, BOOTSTRAP_ADMIN_USERNAME e BOOTSTRAP_ADMIN_PASSWORD (mínimo de 6 caracteres). BOOTSTRAP_ADMIN_EMAIL é opcional. Usuário/e-mail devem estar disponíveis.');
+            $io->err('Confira BOOTSTRAP_ADMIN_NAME e BOOTSTRAP_ADMIN_PASSWORD (mínimo de 6 caracteres). Informe BOOTSTRAP_ADMIN_USERNAME ou BOOTSTRAP_ADMIN_EMAIL, ou ambos. Identificadores preenchidos devem ser válidos e estar disponíveis.');
         } catch (\Throwable $e) {
             // Não imprimir/encadear erros de persistência: podem conter dados sensíveis.
             $io->err('Não foi possível criar o administrador. Verifique a conexão PostgreSQL e as migrations.');

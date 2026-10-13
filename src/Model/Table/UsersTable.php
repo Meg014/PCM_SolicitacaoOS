@@ -26,7 +26,7 @@ class UsersTable extends Table
             ->scalar('name')->requirePresence('name', 'create')
             ->notEmptyString('name', 'Informe o nome.')->maxLength('name', 150)
             ->add('name', 'notBlank', ['rule' => fn($value) => trim($value) !== '', 'message' => 'Informe o nome.'])
-            ->scalar('username')->requirePresence('username', 'create')->notEmptyString('username', 'Informe o usuário.')
+            ->scalar('username')->allowEmptyString('username')
             ->maxLength('username', 60)
             ->add('username', 'format', ['rule' => ['custom', '/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,59}$/'], 'message' => 'Use letras sem acento, números, ponto, hífen ou sublinhado, sem espaços ou @.'])
             ->email('email', false, 'Informe um e-mail válido.')
@@ -42,7 +42,9 @@ class UsersTable extends Table
 
     public function buildRules(RulesChecker $rules): RulesChecker
     {
-        $rules->add($rules->isUnique(['username']), ['errorField' => 'username', 'message' => 'Este usuário já está cadastrado.']);
+        $rules->add(fn($entity) => trim((string)$entity->username) !== '' || trim((string)$entity->email) !== '',
+            'loginIdentifier', ['errorField' => 'username', 'message' => 'Informe usuário/matrícula ou e-mail. Pelo menos um deles é necessário.']);
+        $rules->add($rules->isUnique(['username'], ['allowMultipleNulls' => true]), ['errorField' => 'username', 'message' => 'Este usuário já está cadastrado.']);
         $rules->add($rules->isUnique(['email'], ['allowMultipleNulls' => true]), ['errorField' => 'email', 'message' => 'Este e-mail já está cadastrado.']);
 
         return $rules;

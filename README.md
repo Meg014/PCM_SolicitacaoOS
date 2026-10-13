@@ -133,15 +133,15 @@ No ambiente local, mantenha APP_BASE_URL vazio ou false.
 O comando específico é: php bin/cake.php create_admin
 
 Defina APP_ENV=production e forneça somente no processo CLI as variáveis temporárias
-BOOTSTRAP_ADMIN_NAME, BOOTSTRAP_ADMIN_USERNAME, BOOTSTRAP_ADMIN_PASSWORD e,
-opcionalmente, BOOTSTRAP_ADMIN_EMAIL. Não coloque a senha na linha de comando,
+BOOTSTRAP_ADMIN_NAME e BOOTSTRAP_ADMIN_PASSWORD. Informe também
+BOOTSTRAP_ADMIN_USERNAME ou BOOTSTRAP_ADMIN_EMAIL, ou ambos. Não coloque a senha na linha de comando,
 no repositório ou no histórico do terminal. Não use DevelopmentAdminSeed em produção.
 
 Exemplo PowerShell (solicita os dados e limpa as variáveis temporárias ao terminar):
 
     $env:BOOTSTRAP_ADMIN_NAME = Read-Host 'Nome do administrador'
-    $env:BOOTSTRAP_ADMIN_USERNAME = Read-Host 'Usuário'
-    $env:BOOTSTRAP_ADMIN_EMAIL = Read-Host 'E-mail (opcional)'
+    $env:BOOTSTRAP_ADMIN_USERNAME = Read-Host 'Usuário / matrícula (opcional se houver e-mail)'
+    $env:BOOTSTRAP_ADMIN_EMAIL = Read-Host 'E-mail (obrigatório se não houver usuário)'
     $bootstrapSecret = Read-Host 'Senha inicial' -AsSecureString
     try {
         $env:BOOTSTRAP_ADMIN_PASSWORD = [System.Net.NetworkCredential]::new('', $bootstrapSecret).Password

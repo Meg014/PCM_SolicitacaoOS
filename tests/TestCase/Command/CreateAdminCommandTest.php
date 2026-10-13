@@ -101,4 +101,31 @@ class CreateAdminCommandTest extends TestCase
         $this->assertSame(0, TableRegistry::getTableLocator()->get('RegistrationAudits')->find()->count());
         $this->assertOutputNotContains('BootstrapTeste123!');
     }
+
+    public function testEmailOnlyAndBothIdentifiersAreAccepted(): void
+    {
+        $this->withoutAdmin();
+        $_SERVER['BOOTSTRAP_ADMIN_USERNAME'] = '';
+        $_SERVER['BOOTSTRAP_ADMIN_EMAIL'] = 'bootstrap.email@example.test';
+        $this->exec('create_admin'); $this->assertExitSuccess();
+        $user = $this->users()->find()->where(['role' => 'ADMIN_PCM'])->firstOrFail();
+        $this->assertNull($user->username); $this->assertSame('bootstrap.email@example.test', $user->email);
+        $this->assertTrue($user->must_change_password);
+        $this->assertTrue(password_verify('BootstrapTeste123!', $user->password));
+        $this->users()->updateAll(['role' => 'GESTOR'], ['id' => $user->id]);
+        $_SERVER['BOOTSTRAP_ADMIN_USERNAME'] = 'outro.bootstrap';
+        $_SERVER['BOOTSTRAP_ADMIN_EMAIL'] = 'outro.bootstrap@example.test';
+        $this->exec('create_admin'); $this->assertExitSuccess();
+        $user = $this->users()->find()->where(['role' => 'ADMIN_PCM'])->firstOrFail();
+        $this->assertSame('outro.bootstrap', $user->username);
+        $this->assertSame('outro.bootstrap@example.test', $user->email);
+    }
+
+    public function testNeitherIdentifierIsRejected(): void
+    {
+        $this->withoutAdmin(); $_SERVER['BOOTSTRAP_ADMIN_USERNAME'] = ''; $_SERVER['BOOTSTRAP_ADMIN_EMAIL'] = '';
+        $this->exec('create_admin'); $this->assertExitError();
+        $this->assertSame(4, $this->users()->find()->count());
+        $this->assertSame(0, TableRegistry::getTableLocator()->get('RegistrationAudits')->find()->count());
+    }
 }
