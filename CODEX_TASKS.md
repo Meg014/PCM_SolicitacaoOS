@@ -12,7 +12,7 @@ Execute UMA fase por vez.
 
 ## Fase 1 — Usuários e autorização
 - login/logout;
-- perfis `ADMIN_PCM`, `GESTOR`, `SOLICITANTE`;
+- perfis `ADMIN_PCM`, `PCM`, `MANTENEDOR`;
 - middleware/policy ou camada equivalente de autorização;
 - CRUD de usuários apenas para ADMIN_PCM;
 - seed de usuário admin para desenvolvimento.

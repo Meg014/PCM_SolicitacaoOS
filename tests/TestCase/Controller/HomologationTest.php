@@ -213,7 +213,7 @@ class HomologationTest extends TestCase
     public function testUserDepartmentRequiredAndLegacyStillWorksWithoutInventedMapping(): void
     {
         $this->session(['Auth' => 1]);
-        $data = ['name' => 'Novo usuário', 'email' => 'novo.dept@example.test', 'password' => 'SenhaTeste123!', 'role' => 'SOLICITANTE', 'active' => '1'];
+        $data = ['name' => 'Novo usuário', 'email' => 'novo.dept@example.test', 'password' => 'SenhaTeste123!', 'role' => 'MANTENEDOR', 'active' => '1'];
         $this->postForm('/usuarios/novo', $data); $this->assertResponseOk();
         $this->assertResponseContains('Selecione o setor do funcionário');
         foreach ([999, 3] as $invalid) {

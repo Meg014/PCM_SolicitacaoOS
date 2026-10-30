@@ -35,7 +35,7 @@ class CreateAdminCommandTest extends TestCase
     }
 
     private function users(): \Cake\ORM\Table { return TableRegistry::getTableLocator()->get('Users'); }
-    private function withoutAdmin(): void { $this->users()->updateAll(['role' => 'GESTOR'], ['id' => 1]); }
+    private function withoutAdmin(): void { $this->users()->updateAll(['role' => 'PCM'], ['id' => 1]); }
 
     public function testProductionCreatesHashedAdminWithMandatoryPasswordChangeAndSafeAudit(): void
     {
@@ -112,7 +112,7 @@ class CreateAdminCommandTest extends TestCase
         $this->assertNull($user->username); $this->assertSame('bootstrap.email@example.test', $user->email);
         $this->assertTrue($user->must_change_password);
         $this->assertTrue(password_verify('BootstrapTeste123!', $user->password));
-        $this->users()->updateAll(['role' => 'GESTOR'], ['id' => $user->id]);
+        $this->users()->updateAll(['role' => 'PCM'], ['id' => $user->id]);
         $_SERVER['BOOTSTRAP_ADMIN_USERNAME'] = 'outro.bootstrap';
         $_SERVER['BOOTSTRAP_ADMIN_EMAIL'] = 'outro.bootstrap@example.test';
         $this->exec('create_admin'); $this->assertExitSuccess();

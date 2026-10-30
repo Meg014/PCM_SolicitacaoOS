@@ -17,7 +17,7 @@ class RequestHandlingService
         $tables = TableRegistry::getTableLocator();
         $requests = $tables->get('ServiceRequests');
         $requests->getConnection()->transactional(function () use ($tables, $requests, $id, $actorId, $action, $value): void {
-            if (!$tables->get('Users')->exists(['id' => $actorId, 'active' => true, 'role' => UserRole::ADMIN_PCM->value])) {
+            if (!$tables->get('Users')->exists(['id' => $actorId, 'active' => true, 'role IN' => [UserRole::ADMIN_PCM->value, UserRole::PCM->value]])) {
                 throw new ForbiddenException('Somente o PCM pode tratar solicitações.');
             }
             $locked = $requests->getConnection()->execute('SELECT id FROM service_requests WHERE id = :id FOR UPDATE', ['id' => $id])->fetch('assoc');

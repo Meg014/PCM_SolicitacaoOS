@@ -145,7 +145,7 @@ class SharedExecutionTest extends TestCase
     public function testAllOperationalRolesCanCreateEitherFlowAndCannotPerformPcmActions(): void
     {
         $users = TableRegistry::getTableLocator()->get('Users');
-        foreach ([UserRole::SOLICITANTE, UserRole::MANTENEDOR, UserRole::ENCARREGADO, UserRole::GESTOR] as $role) {
+        foreach ([UserRole::MANTENEDOR] as $role) {
             $users->updateAll(['role' => $role->value], ['id' => 2]);
             $this->session(['Auth' => 2]);
             foreach (RequestFlow::cases() as $flow) {
@@ -162,13 +162,13 @@ class SharedExecutionTest extends TestCase
     public function testNewProfilesCanContinueSharedExecutionAndHaveDifferentDashboardAccess(): void
     {
         $this->prepareTracking();
-        foreach ([UserRole::MANTENEDOR, UserRole::ENCARREGADO] as $role) {
+        foreach ([UserRole::MANTENEDOR, UserRole::PCM] as $role) {
             TableRegistry::getTableLocator()->get('Users')->updateAll(['role' => $role->value], ['id' => 2]);
             $this->session(['Auth' => 2]); $this->get('/solicitacoes/1'); $this->assertResponseOk();
             $this->postAction('apontamentos', ['items' => [$this->item($role->label())]]); $this->assertResponseCode(302);
             $this->get('/painel'); $this->assertResponseCode($role->hasDashboard() ? 200 : 403);
             $this->get('/usuarios'); $this->assertResponseCode(403);
-            $this->get('/relatorios'); $this->assertResponseCode(403);
+            $this->get('/relatorios'); $this->assertResponseCode($role->hasReports() ? 200 : 403);
         }
         $this->postAction('concluir-servico');
         $this->assertSame(RequestStatus::AGUARDANDO_ENCERRAMENTO->value, $this->request()->status);

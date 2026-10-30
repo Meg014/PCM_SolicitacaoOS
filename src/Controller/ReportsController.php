@@ -14,7 +14,7 @@ class ReportsController extends DashboardController
         if ($event->isStopped()) { return; }
         $identity = $this->request->getAttribute('identity');
         if ($identity && !\App\Domain\Enum\UserRole::tryFrom($identity->get('role'))?->hasReports()) {
-            throw new \Cake\Http\Exception\ForbiddenException('Relatórios e indicadores são exclusivos do PCM e dos gestores.');
+            throw new \Cake\Http\Exception\ForbiddenException('Relatórios e indicadores são exclusivos do PCM e do Administrador PCM.');
         }
     }
     public function index(): void

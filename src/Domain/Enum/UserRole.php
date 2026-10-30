@@ -6,27 +6,31 @@ namespace App\Domain\Enum;
 enum UserRole: string
 {
     case ADMIN_PCM = 'ADMIN_PCM';
-    case GESTOR = 'GESTOR';
-    case SOLICITANTE = 'SOLICITANTE';
+    case PCM = 'PCM';
     case MANTENEDOR = 'MANTENEDOR';
-    case ENCARREGADO = 'ENCARREGADO';
 
     public function label(): string
     {
         return match ($this) {
-            self::ADMIN_PCM => 'PCM / Administrador', self::GESTOR => 'Gestor',
-            self::SOLICITANTE => 'Solicitante', self::MANTENEDOR => 'Mantenedor', self::ENCARREGADO => 'Encarregado',
+            self::ADMIN_PCM => 'Administrador PCM',
+            self::PCM => 'PCM',
+            self::MANTENEDOR => 'Mantenedor',
         };
+    }
+
+    public function canHandleRequests(): bool
+    {
+        return in_array($this, [self::ADMIN_PCM, self::PCM], true);
     }
 
     public function hasDashboard(): bool
     {
-        return in_array($this, [self::ADMIN_PCM, self::GESTOR, self::ENCARREGADO], true);
+        return $this->canHandleRequests();
     }
 
     public function hasReports(): bool
     {
-        return in_array($this, [self::ADMIN_PCM, self::GESTOR], true);
+        return $this->canHandleRequests();
     }
 
     public static function options(): array

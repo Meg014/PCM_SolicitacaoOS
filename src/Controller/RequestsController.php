@@ -157,7 +157,7 @@ class RequestsController extends AppController
     {
         $this->request->allowMethod(['post']);
         $identity = $this->request->getAttribute('identity');
-        if ($identity->get('role') !== UserRole::ADMIN_PCM->value) {
+        if (!UserRole::tryFrom($identity->get('role'))?->canHandleRequests()) {
             throw new \Cake\Http\Exception\ForbiddenException('Somente o PCM pode tratar solicitações.');
         }
         try {

@@ -221,3 +221,17 @@ Formato:
 ## 2026-10-13 — Fila por atividade recente
 - A fila ativa e o polling usam last_activity_at decrescente, sem prioridade por situação ou novo apontamento. IDs decrescentes desempatam horários iguais. Registros antigos sem last_activity_at usam created_at como atividade inicial; não é necessária nova migration. Criação, apontamentos, vínculo, cancelamento e mudanças operacionais já atualizam o campo. Consultas sem mudança não alteram a atividade.
 - A paginação aceita apenas page: parâmetros sort/direction não substituem a ordenação operacional. NOVO APONTAMENTO continua sendo somente destaque visual.
+## 2026-10-26 — Etapa 1: funções autorizadas
+- Fonte fornecida: `C:\Users\maria.goncalves\Desktop\Função.xlsx`, primeira aba, colunas `Funcao` e `Descricao`, 45 funções. O arquivo recebido tem nome diferente de `Função(1).xlsx` mencionado no pedido.
+- Cadastro independente em `authorized_functions` no PostgreSQL, com código textual único, descrição, ativo e datas. Não reutilizar Mão de obra/setores: representam outros cadastros.
+- Preservar o conteúdo original do código, sem completar zeros ou presumir tamanho TOTVS. Na planilha recebida os códigos são células numéricas sem máscara; `5` permanece `5`. Códigos textuais como `0005` conservam zeros.
+- Importação transacional por operador do servidor: `php bin/cake.php import_authorized_functions "C:\Users\maria.goncalves\Desktop\Função.xlsx" --user-id ID_ADMIN`. Exige administrador ativo e registra alterações em `registration_audits` pela rotina existente. Sem mudanças, não gerar eventos duplicados.
+- Reimportar atualiza descrições e reativa códigos presentes. Por padrão mantém os ausentes; `--replace` inativa ausentes com auditoria, sem exclusão física. Duplicatas idênticas são consolidadas; descrições conflitantes, fórmulas, campos vazios e planilhas vazias rejeitam o lote inteiro.
+- Prévia sem banco: `php bin/cake.php import_authorized_functions "CAMINHO.xlsx" --dry-run`. Requer extensões PHP Zip e SimpleXML. Leitura limitada a 5 MB por XML; não executa macros, fórmulas nem entidades XML.
+- Etapas 2 a 6 permanecem para a próxima fase, conforme execução incremental do projeto. Campos/permissões dos funcionários TOTVS ainda não confirmados; nenhuma consulta ou gravação TOTVS nesta etapa. Imagem de referência não estava disponível nesta conversa.
+
+## 2026-10-30 — Perfis funcionais
+- Somente MANTENEDOR, PCM e ADMIN_PCM. SOLICITANTE migra para MANTENEDOR; GESTOR/ENCARREGADO para PCM por já terem visão geral. Perfil desconhecido bloqueia a migration; contas e snapshots históricos são preservados.
+- PCM recebe tratamento e relatórios operacionais; cadastros seguem exclusivos do administrador. Permissão compartilhada de acompanhamento permanece igual.
+- Execução incremental: esta fase cobre perfis; grade, autocomplete e snapshots de funcionários ficam para a fase seguinte.
+- Validação desta fase: migration aplicada; 73 testes selecionados passaram (perfis, migration, administração, execução compartilhada, simplificação operacional, homologação e bootstrap admin); Composer validate e sintaxe PHP aprovados. Ambiente local PHP 8.2.12: repetir homologação em PHP 8.3+. Suíte completa interrompida; resultado informado corresponde somente à seleção desta fase.

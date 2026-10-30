@@ -23,7 +23,7 @@ class DashboardController extends AppController
                 $event->stopPropagation();
                 return;
             }
-            throw new ForbiddenException('O painel é exclusivo do PCM e dos gestores.');
+            throw new ForbiddenException('O painel é exclusivo do PCM e do Administrador PCM.');
         }
     }
 

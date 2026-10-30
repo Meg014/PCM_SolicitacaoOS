@@ -10,30 +10,11 @@ O sistema NÃO abre a OS no TOTVS nesta primeira versão. O PCM continua abrindo
 
 ## 3. Perfis
 
-### ADMIN_PCM
-- acesso total;
-- gerencia usuários;
-- gerencia setores;
-- vê todas as solicitações;
-- trata solicitações sem etapa de assumir;
-- informa número da OS TOTVS;
-- cancela solicitações;
-- consulta auditoria e indicadores.
+- `MANTENEDOR`: cria, acompanha suas solicitações e atua no acompanhamento compartilhado existente.
+- `PCM`: visão geral, fila, relatórios operacionais, vínculo da O.S. e cancelamento com motivo; sem administração de cadastros e usuários.
+- `ADMIN_PCM`: acesso completo às funções administrativas existentes.
 
-### GESTOR
-- cria solicitações;
-- visualiza todas as solicitações permitidas pelo escopo da empresa nesta primeira versão;
-- acessa dashboard geral;
-- consulta detalhes e número da OS vinculada;
-- não administra usuários;
-- não altera cadastros estruturais;
-- por padrão não vincula OS TOTVS.
-
-### SOLICITANTE
-- cria solicitações;
-- vê somente as próprias solicitações;
-- vê detalhes e status;
-- após vínculo, vê o número da OS TOTVS.
+Matriz e migração: `docs/ROLES_PERMISSIONS.md`.
 
 ## 4. Nova solicitação
 Campos da solicitação:
@@ -117,7 +98,7 @@ Formato sugerido:
 
 O número da OS TOTVS é outro campo.
 
-## 10. Dashboard PCM/Gestor
+## 10. Dashboard PCM
 Exibir de forma simples:
 - aguardando PCM;
 - em análise;

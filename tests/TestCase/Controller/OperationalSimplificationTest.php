@@ -91,7 +91,7 @@ class OperationalSimplificationTest extends TestCase
         $this->assertContains('OS_DISPOSITION_CHANGED', array_column($audits, 'action'));
         $this->assertContains('STATUS_CHANGED', array_column($audits, 'action'));
         $completed = $this->table('RequestAudits')->find()->where(['action' => 'SERVICE_COMPLETED'])->firstOrFail();
-        $this->assertEquals(['id' => 2, 'name' => 'Usuário 2', 'username' => 'user2', 'email' => 'user2@example.test', 'role' => 'GESTOR'], $completed->actor_snapshot);
+        $this->assertEquals(['id' => 2, 'name' => 'Usuário 2', 'username' => 'user2', 'email' => 'user2@example.test', 'role' => 'PCM'], $completed->actor_snapshot);
         $this->assertSame('EM_EXECUCAO', $completed->old_status);
         $this->assertSame('AGUARDANDO_ENCERRAMENTO', $completed->new_status);
         $this->assertNotNull($completed->created_at);
@@ -119,7 +119,7 @@ class OperationalSimplificationTest extends TestCase
         $request = (new RequestCreationService($assets))->create(['unit' => 'USINA', 'asset_code' => 'NOVO', 'asset_branch' => '01',
             'sector_id' => 1, 'maintenance_type' => 'CORRETIVA', 'description' => 'Pedido', 'os_disposition' => 'MANTER_ABERTA', 'items' => [$this->item()]], 3);
         $audit = $this->table('RequestAudits')->find()->where(['request_id' => $request->id, 'action' => 'REQUEST_CREATED'])->firstOrFail();
-        $this->assertSame('user3', $audit->actor_snapshot['username']); $this->assertSame('SOLICITANTE', $audit->actor_snapshot['role']);
+        $this->assertSame('user3', $audit->actor_snapshot['username']); $this->assertSame('MANTENEDOR', $audit->actor_snapshot['role']);
         $this->assertNull($audit->old_status); $this->assertSame('AGUARDANDO_PCM', $audit->new_status);
         $this->assertNotNull($request->last_activity_at); $this->assertNull($request->last_item_at);
         $this->assertCount(1, $audit->new_values['items']);

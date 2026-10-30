@@ -43,7 +43,7 @@ class UsersController extends AdminController
             if ($user->isDirty('password')) { $user->set('must_change_password', true); }
             $actorId = (int)$this->request->getAttribute('identity')->getIdentifier();
             if ($id !== null && (int)$user->id === $actorId && (!$user->active || $user->role !== UserRole::ADMIN_PCM->value)) {
-                $user->setError('active', 'Mantenha sua própria conta ativa com perfil PCM.');
+                $user->setError('active', 'Mantenha sua própria conta ativa com perfil Administrador PCM.');
             }
             try {
                 (new RegistrationService())->save($table, $user, $before, $actorId);

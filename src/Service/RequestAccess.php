@@ -17,7 +17,7 @@ final class RequestAccess
     public static function conditions(string $role, int $userId): array
     {
         $profile = UserRole::tryFrom($role);
-        if ($profile && in_array($profile, [UserRole::ADMIN_PCM, UserRole::GESTOR, UserRole::ENCARREGADO], true)) {
+        if ($profile && $profile->canHandleRequests()) {
             return [];
         }
         if ($profile) {

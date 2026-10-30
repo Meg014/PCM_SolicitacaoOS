@@ -21,7 +21,7 @@
     <?php if ($request->cancelled_at): ?><dt>Cancelada por</dt><dd><?= h($request->cancelled_user->name) ?> · <?= h($request->cancelled_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')) ?></dd><dt>Motivo</dt><dd class="preserve-lines"><?= h($request->cancellation_reason) ?></dd><?php endif; ?>
 </dl>
 <?php
-$isPcm = $this->getRequest()->getAttribute('identity')->get('role') === \App\Domain\Enum\UserRole::ADMIN_PCM->value;
+$isPcm = \App\Domain\Enum\UserRole::tryFrom($this->getRequest()->getAttribute('identity')->get('role'))?->canHandleRequests();
 $pending = in_array($request->status, [\App\Domain\Enum\RequestStatus::AGUARDANDO_PCM->value, \App\Domain\Enum\RequestStatus::EM_ANALISE->value], true);
 ?>
 <?php if ($isPcm && $pending): ?>

@@ -12,7 +12,7 @@ class UsersFixture extends TestFixture
     public function init(): void
     {
         $password = (new DefaultPasswordHasher())->hash('SenhaTeste123!');
-        $roles = [UserRole::ADMIN_PCM, UserRole::GESTOR, UserRole::SOLICITANTE, UserRole::SOLICITANTE];
+        $roles = [UserRole::ADMIN_PCM, UserRole::PCM, UserRole::MANTENEDOR, UserRole::MANTENEDOR];
         foreach ($roles as $index => $role) {
             $this->records[] = [
                 'id' => $index + 1, 'name' => 'Usuário ' . ($index + 1),
