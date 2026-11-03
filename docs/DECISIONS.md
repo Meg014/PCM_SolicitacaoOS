@@ -246,3 +246,10 @@ Formato:
 - Gerador de teste de navegador: php tests/Browser/employee-grid.php. Escreve tmp/employee-browser.html com fetch simulado e 16 verificações de interação/layout; nenhuma consulta real. Testar em desktop, tablet e iframe de 360 px (o navegador headless limita a largura mínima da janela).
 
 - Validação final: suíte PHPUnit completa com 195 testes aprovados (PHPUnit exit 0); 48 verificações de navegador, 16 em cada largura 360/768/1366 px; Composer validate, sintaxe PHP dos arquivos alterados e git diff --check aprovados. Diagnóstico real confirmou SELECT dos quatro campos. Dois testes de perfil ainda esperavam o comportamento anterior e foram alinhados aos perfis já vigentes; nenhuma permissão foi alterada nesta fase.
+
+## 2026-11-03 — Usuário sem setor obrigatório
+- Cadastro/edição passa a usar somente nome, usuário/matrícula, e-mail opcional, senha provisória, perfil e ativo. Preservar a regra existente de pelo menos um identificador de login (usuário ou e-mail), troca obrigatória da senha provisória e administração exclusiva de ADMIN_PCM.
+- department_id já é anulável pela migration 20261013000200 e no banco principal (information_schema: is_nullable YES); nenhuma migration nova necessária. Manter coluna, associação e FK para compatibilidade com registros/filtros históricos. Não apagar usuários nem limpar seus vínculos antigos.
+- Remover campo das telas de usuário e da listagem; perfil pessoal mostra o nome amigável do perfil. Ignorar department_id recebido em cadastro/edição e bloquear sua atribuição em massa na entidade. Criação inicial por comando/seed também não depende de setor nem cria cadastro auxiliar como efeito colateral.
+- MANTENEDOR, PCM e ADMIN_PCM e suas permissões permanecem iguais; cadastros auxiliares e fluxos de solicitações permanecem inalterados.
+- Validação: 53 testes afetados aprovados (administração, perfil/acesso, homologação, três perfis, criação inicial e seed), sintaxe dos PHP alterados e git diff --check aprovados.

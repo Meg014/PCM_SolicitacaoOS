@@ -115,7 +115,7 @@ class AccessReviewTest extends TestCase
     {
         $this->session(['Auth' => 1]);
         $this->enableCsrfToken('pcm_solicitacao_os_csrf');
-        $this->post('/usuarios/2/editar', ['department_id' => 1, 'password' => str_repeat('a', 150), 'must_change_password' => false]);
+        $this->post('/usuarios/2/editar', ['password' => str_repeat('a', 150), 'must_change_password' => false]);
         $this->assertRedirect('/usuarios');
         $this->assertTrue($this->users()->get(2)->must_change_password);
     }

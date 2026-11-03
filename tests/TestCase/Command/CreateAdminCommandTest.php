@@ -129,17 +129,39 @@ class CreateAdminCommandTest extends TestCase
         $this->assertSame(0, TableRegistry::getTableLocator()->get('RegistrationAudits')->find()->count());
     }
 
-    public function testDepartmentRequiredAndNewDepartmentCreationIsAudited(): void
+    public function testCreatesAdminWithoutDepartmentOrDepartmentSideEffects(): void
     {
-        $this->withoutAdmin(); $_SERVER['BOOTSTRAP_ADMIN_DEPARTMENT'] = '';
-        $this->exec('create_admin'); $this->assertExitError();
-        $this->assertSame(4, $this->users()->find()->count());
-        $this->users()->getConnection()->execute("SELECT setval(pg_get_serial_sequence('user_departments', 'id'), (SELECT MAX(id) FROM user_departments))");
-        $_SERVER['BOOTSTRAP_ADMIN_DEPARTMENT'] = 'Setor informado pelo operador';
+        $this->withoutAdmin(); unset($_SERVER['BOOTSTRAP_ADMIN_DEPARTMENT']);
+        $count = TableRegistry::getTableLocator()->get('UserDepartments')->find()->count();
         $this->exec('create_admin'); $this->assertExitSuccess();
-        $department = TableRegistry::getTableLocator()->get('UserDepartments')->find()->where(['name' => $_SERVER['BOOTSTRAP_ADMIN_DEPARTMENT']])->firstOrFail();
         $user = $this->users()->find()->where(['role' => 'ADMIN_PCM'])->firstOrFail();
-        $this->assertSame($department->id, $user->department_id);
-        $this->assertSame(2, TableRegistry::getTableLocator()->get('RegistrationAudits')->find()->count());
+        $this->assertNull($user->department_id);
+        $this->assertSame($count, TableRegistry::getTableLocator()->get('UserDepartments')->find()->count());
+        $this->assertSame(1, TableRegistry::getTableLocator()->get('RegistrationAudits')->find()->count());
+    }
+
+    public function testDevelopmentSeedDoesNotRequireOrCreateDepartment(): void
+    {
+        require_once ROOT . '/config/Seeds/DevelopmentAdminSeed.php';
+        $this->withoutAdmin();
+        $values = ['APP_ENV' => 'development', 'ADMIN_SEED_USERNAME' => 'seed.teste',
+            'ADMIN_SEED_EMAIL' => '', 'ADMIN_SEED_PASSWORD' => 'SenhaSeed123!', 'ADMIN_SEED_DEPARTMENT' => ''];
+        $previous = [];
+        foreach ($values as $key => $value) {
+            $previous[$key] = $_SERVER[$key] ?? null;
+            $_SERVER[$key] = $value;
+        }
+        try {
+            $count = TableRegistry::getTableLocator()->get('UserDepartments')->find()->count();
+            (new \DevelopmentAdminSeed())->run();
+            $user = $this->users()->find()->where(['username' => 'seed.teste'])->firstOrFail();
+            $this->assertNull($user->department_id);
+            $this->assertSame('ADMIN_PCM', $user->role);
+            $this->assertSame($count, TableRegistry::getTableLocator()->get('UserDepartments')->find()->count());
+        } finally {
+            foreach ($previous as $key => $value) {
+                if ($value === null) { unset($_SERVER[$key]); } else { $_SERVER[$key] = $value; }
+            }
+        }
     }
 }

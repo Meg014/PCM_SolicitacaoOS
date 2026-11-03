@@ -216,27 +216,39 @@ class HomologationTest extends TestCase
         }
     }
 
-    public function testUserDepartmentRequiredAndLegacyStillWorksWithoutInventedMapping(): void
+    public function testUserCreationIgnoresDepartmentAndLegacyLinksArePreserved(): void
     {
+        $users = $this->table('Users');
+        $users->getConnection()->execute("SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users))");
         $this->session(['Auth' => 1]);
-        $data = ['name' => 'Novo usuário', 'email' => 'novo.dept@example.test', 'password' => 'SenhaTeste123!', 'role' => 'MANTENEDOR', 'active' => '1'];
-        $this->postForm('/usuarios/novo', $data); $this->assertResponseOk();
-        $this->assertResponseContains('Selecione o setor do funcionário');
-        foreach ([999, 3] as $invalid) {
-            $this->postForm('/usuarios/novo', $data + ['department_id' => $invalid]); $this->assertResponseOk();
-            $this->assertSame(4, $this->table('Users')->find()->count());
+        foreach (\App\Domain\Enum\UserRole::cases() as $role) {
+            $data = ['name' => 'Novo usuário', 'username' => 'novo.' . strtolower($role->value), 'email' => '',
+                'password' => 'SenhaTeste123!', 'role' => $role->value, 'active' => '1', 'department_id' => 999];
+            $this->postForm('/usuarios/novo', $data); $this->assertRedirect('/usuarios');
+            $user = $users->find()->where(['username' => $data['username']])->firstOrFail();
+            $this->assertNull($user->department_id);
+            $this->assertNull($user->email);
+            $this->assertSame($role->value, $user->role);
+            $this->assertTrue($user->must_change_password);
         }
-        $this->table('Users')->getConnection()->execute("SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users))");
-        $this->postForm('/usuarios/novo', $data + ['department_id' => 2]); $this->assertRedirect('/usuarios');
-        $user = $this->table('Users')->find()->where(['email' => $data['email']])->firstOrFail();
-        $this->assertSame(2, $user->department_id);
-        $this->get('/usuarios'); $this->assertResponseContains('Moenda teste'); $this->assertResponseContains('Não informado (registro anterior)');
-        $this->postForm('/usuarios/2/editar', ['name' => 'Gestor atualizado']); $this->assertResponseOk();
-        $this->assertNull($this->table('Users')->get(2)->department_id);
-        $this->session(['Auth' => 3]); $this->get('/meu-perfil'); $this->assertResponseOk();
-        $this->assertResponseContains('Não informado (registro anterior)');
-        (new \App\Service\PasswordChangeService())->change(3, 'SenhaTeste123!', 'SenhaNova123!', 'SenhaNova123!');
-        $this->assertNull($this->table('Users')->get(3)->department_id);
+        $users->updateAll(['department_id' => 2], ['id' => 2]);
+        $this->postForm('/usuarios/2/editar', ['name' => 'PCM atualizado', 'department_id' => 999]);
+        $this->assertRedirect('/usuarios');
+        $this->assertSame(2, $users->get(2)->department_id);
+        $this->postForm('/usuarios/3/editar', ['name' => 'Mantenedor atualizado']);
+        $this->assertRedirect('/usuarios');
+        $this->assertNull($users->get(3)->department_id);
+        foreach (['/usuarios/novo', '/usuarios/2/editar', '/usuarios'] as $url) {
+            $this->get($url); $this->assertResponseOk();
+            $this->assertResponseNotContains('name="department_id"');
+            $this->assertResponseNotContains('Setor do funcionário');
+            $this->assertResponseNotContains('<th>Setor</th>');
+            $this->assertResponseNotContains('Moenda teste');
+        }
+        $this->session(['Auth' => 2]); $this->get('/meu-perfil'); $this->assertResponseOk();
+        $this->assertResponseNotContains('<dt>Setor</dt>');
+        $this->assertResponseContains('<dt>Perfil</dt><dd>PCM</dd>');
+        $this->assertSame(2, $users->get(2)->department_id);
     }
 
     public function testDepartmentCatalogRestrictedToPcmAndAudited(): void

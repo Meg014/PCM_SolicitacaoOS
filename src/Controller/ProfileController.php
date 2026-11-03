@@ -9,7 +9,7 @@ class ProfileController extends AppController
 {
     public function index(): void
     {
-        $user = $this->fetchTable('Users')->get($this->request->getAttribute('identity')->getIdentifier(), contain: ['UserDepartments']);
+        $user = $this->fetchTable('Users')->get($this->request->getAttribute('identity')->getIdentifier());
         $this->set(compact('user'));
     }
 

@@ -26,7 +26,7 @@ class UsersTable extends Table
             ->scalar('name')->requirePresence('name', 'create')
             ->notEmptyString('name', 'Informe o nome.')->maxLength('name', 150)
             ->add('name', 'notBlank', ['rule' => fn($value) => trim($value) !== '', 'message' => 'Informe o nome.'])
-            ->integer('department_id', 'Selecione um setor válido.')->requirePresence('department_id', 'create', 'Selecione o setor do funcionário.')->notEmptyString('department_id', 'Selecione o setor do funcionário.')
+            ->integer('department_id', 'Informe um setor válido.')->allowEmptyString('department_id')
             ->scalar('username')->allowEmptyString('username')
             ->maxLength('username', 60)
             ->add('username', 'format', ['rule' => ['custom', '/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,59}$/'], 'message' => 'Use letras sem acento, números, ponto, hífen ou sublinhado, sem espaços ou @.'])
@@ -48,10 +48,6 @@ class UsersTable extends Table
         $rules->add($rules->isUnique(['username'], ['allowMultipleNulls' => true]), ['errorField' => 'username', 'message' => 'Este usuário já está cadastrado.']);
         $rules->add($rules->isUnique(['email'], ['allowMultipleNulls' => true]), ['errorField' => 'email', 'message' => 'Este e-mail já está cadastrado.']);
 
-        $rules->add(function ($entity): bool {
-            if (!$entity->isNew() && !$entity->isDirty('department_id')) { return true; }
-            return $entity->department_id && $this->UserDepartments->exists(['id' => $entity->department_id, 'active' => true]);
-        }, 'department', ['errorField' => 'department_id', 'message' => 'Selecione um setor ativo do funcionário.']);
         $rules->add($rules->existsIn(['department_id'], 'UserDepartments', ['allowNullableNulls' => true]),
             ['errorField' => 'department_id', 'message' => 'Selecione um setor cadastrado.']);
         return $rules;
