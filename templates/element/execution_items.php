@@ -1,5 +1,5 @@
 <?php
-$this->Html->script('request-form', ['block' => true, 'defer' => true]);
+$this->Html->script('request-form.js?v=' . filemtime(WWW_ROOT . 'js' . DS . 'request-form.js'), ['block' => true, 'defer' => true]);
 $raw = $this->getRequest()->getData('items');
 $rows = is_array($raw) ? array_slice(array_values($raw), 0, 50) : [[]];
 $text = fn($v) => is_scalar($v) ? (string)$v : '';

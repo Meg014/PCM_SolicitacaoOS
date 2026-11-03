@@ -74,10 +74,12 @@ class SubdirectoryTest extends TestCase
     public function testPrivateLinksFormsAutocompleteAndAttachmentsUseSubdirectory(): void
     {
         $this->session(['Auth' => 1]); $this->get($this->url('/solicitacoes/nova')); $this->assertResponseOk();
-        foreach (['/api/bens', '/api/solicitacoes-ativas', '/solicitacoes/nova', '/sair', '/meu-perfil', '/usuarios', '/sessao/atividade'] as $path) {
+        foreach (['/api/bens', '/api/funcionarios', '/api/solicitacoes-ativas', '/solicitacoes/nova', '/sair', '/meu-perfil', '/usuarios', '/sessao/atividade'] as $path) {
             $this->assertResponseContains(self::BASE . $path);
         }
-        $this->assertResponseContains(self::BASE . '/js/request-form.js');
+        $this->assertResponseContains('data-lookup="' . self::BASE . '/api/funcionarios"');
+        $this->assertResponseContains(self::BASE . '/js/request-form.js?v=');
+        $this->assertSame(1, substr_count((string)$this->_response->getBody(), self::BASE . '/js/request-form.js?v='));
         $this->get($this->url('/solicitacoes/1')); $this->assertResponseOk();
         $this->assertResponseContains('action="' . self::BASE . '/solicitacoes/1/vincular-os"');
         $this->assertSame(self::BASE . '/fotos/1', Router::url(['controller' => 'Attachments', 'action' => 'view', 1]));
