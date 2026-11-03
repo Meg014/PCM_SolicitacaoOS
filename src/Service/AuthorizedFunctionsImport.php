@@ -61,7 +61,7 @@ final class AuthorizedFunctionsImport
             }
             $result = [];
             foreach ($rows as $row) {
-                $code = $row['A'] ?? '';
+                $code = AuthorizedFunctionCode::forTotvs($row['A'] ?? '');
                 $name = $row['B'] ?? '';
                 if ($code === '' || $name === '' || mb_strlen($code) > 100 || mb_strlen($name) > 255) {
                     throw new \InvalidArgumentException('Cada função precisa de código e descrição válidos.');

@@ -42,7 +42,14 @@ class TotvsEmployeesService implements EmployeesLookupInterface
     private function lookup(array $params, bool $find): array
     {
         try {
-            $functions = $this->functions();
+            $functions = [];
+            foreach ($this->functions() as $code => $name) {
+                $code = AuthorizedFunctionCode::forTotvs((string)$code);
+                if (isset($functions[$code]) && $functions[$code] !== $name) {
+                    throw new \UnexpectedValueException('Funções equivalentes com descrições conflitantes.');
+                }
+                $functions[$code] = $name;
+            }
             if (!$functions) {
                 return [];
             }

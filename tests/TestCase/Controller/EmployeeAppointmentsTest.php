@@ -118,4 +118,24 @@ class EmployeeAppointmentsTest extends TestCase
             ['name_term' => '%AB%', 'registration_term' => '%AB%', 'function_0' => '00005'])->willReturn([]);
         $this->assertSame([], $service->search('AB'));
     }
+
+    public function testSpreadsheetFunctionMatchesTotvsAndPersistsCanonicalSnapshot(): void
+    {
+        TableRegistry::getTableLocator()->get('AuthorizedFunctions')->updateAll(['code' => '32', 'name' => 'ELETRICISTA SR'], ['id' => 1]);
+        $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read'])->getMock();
+        $service->expects($this->once())->method('read')->with($this->anything(),
+            ['registration' => '006783', 'function_0' => '00032'])->willReturn([
+                ['registration' => '006783', 'name' => 'JOÃO DA SILVA', 'function_code' => '00032', 'situation' => 'F'],
+            ]);
+        $this->employees = $service;
+        $this->postRows([$this->row()]);
+        $this->assertRedirect('/solicitacoes/1');
+        $item = TableRegistry::getTableLocator()->get('RequestItems')->find()->firstOrFail();
+        $this->assertSame('006783', $item->employee_registration);
+        $this->assertSame('JOÃO DA SILVA', $item->employee_name);
+        $this->assertSame('00032', $item->employee_function_code);
+        $this->assertSame('ELETRICISTA SR', $item->employee_function_name);
+        $this->get('/solicitacoes/1');
+        $this->assertResponseContains('006783 - JOÃO DA SILVA - ELETRICISTA SR');
+    }
 }

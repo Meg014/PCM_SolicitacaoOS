@@ -46,14 +46,14 @@ class AuthorizedFunctionsImportTest extends TestCase
 
     public function testPreservesLeadingZerosAndDeduplicates(): void
     {
-        $path = $this->workbook([['0005', 'Mecânico'], ['0005', 'Mecânico'], ['5', 'Outra função']]);
+        $path = $this->workbook([['00005', 'Mecânico'], ['0005', 'Mecânico'], ['5', 'Mecânico'], ['32', 'Eletricista']]);
         $rows = (new AuthorizedFunctionsImport())->read($path);
-        $this->assertSame([['code' => '0005', 'name' => 'Mecânico'], ['code' => '5', 'name' => 'Outra função']], $rows);
+        $this->assertSame([['code' => '00005', 'name' => 'Mecânico'], ['code' => '00032', 'name' => 'Eletricista']], $rows);
     }
 
     public function testConflictingDescriptionsRejectEntireFile(): void
     {
-        $path = $this->workbook([['05', 'Mecânico'], ['05', 'Eletricista']]);
+        $path = $this->workbook([['5', 'Mecânico'], ['00005', 'Eletricista']]);
         $this->expectException(\InvalidArgumentException::class);
         (new AuthorizedFunctionsImport())->import($path, 1);
     }
@@ -83,8 +83,8 @@ class AuthorizedFunctionsImportTest extends TestCase
         $tables = TableRegistry::getTableLocator();
         $table = $tables->get('AuthorizedFunctions');
         $this->assertSame(2, $table->find()->count());
-        $this->assertSame('Mecânico atualizado', $table->find()->where(['code' => '0005'])->firstOrFail()->name);
-        $this->assertFalse($table->find()->where(['code' => '0019'])->firstOrFail()->active);
+        $this->assertSame('Mecânico atualizado', $table->find()->where(['code' => '00005'])->firstOrFail()->name);
+        $this->assertFalse($table->find()->where(['code' => '00019'])->firstOrFail()->active);
         $audits = $tables->get('RegistrationAudits')->find()->where(['resource' => 'AuthorizedFunctions']);
         $this->assertSame(4, $audits->count());
         foreach ($audits as $audit) {

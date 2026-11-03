@@ -23,6 +23,30 @@ class TotvsEmployeesServiceTest extends TestCase
         return ['registration' => '006783', 'name' => 'ABADIO OLIVEIRA', 'function_code' => '00005', 'situation' => $situation];
     }
 
+    public function testSpreadsheetCodeIsPaddedForSearchAndRevalidation(): void
+    {
+        $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read', 'functions'])->getMock();
+        $service->method('functions')->willReturn([32 => 'ELETRICISTA SR', '00032' => 'ELETRICISTA SR']);
+        $service->expects($this->exactly(3))->method('read')->willReturnCallback(function ($sql, $params) {
+            $this->assertSame('00032', $params['function_0']);
+            $this->assertArrayNotHasKey('function_1', $params);
+            return [array_replace($this->row(), ['function_code' => '00032'])];
+        });
+        foreach (['ABADIO', '006783'] as $term) {
+            $this->assertSame('006783 - ABADIO OLIVEIRA - ELETRICISTA SR', $service->search($term)[0]['label']);
+        }
+        $this->assertSame('00032', $service->find('006783')['function_code']);
+    }
+
+    public function testConflictingEquivalentLocalCodesFailClosed(): void
+    {
+        $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read', 'functions'])->getMock();
+        $service->method('functions')->willReturn([32 => 'Mecânico', '00032' => 'Eletricista']);
+        $service->expects($this->never())->method('read');
+        $this->expectException(EmployeesUnavailableException::class);
+        $service->search('AB');
+    }
+
     public function testSearchByNameAndRegistrationUsesBoundParameters(): void
     {
         foreach (['ABADIO', '006783'] as $term) {
