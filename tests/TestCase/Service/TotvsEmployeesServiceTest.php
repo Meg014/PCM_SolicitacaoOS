@@ -60,6 +60,17 @@ class TotvsEmployeesServiceTest extends TestCase
         }
     }
 
+    public function testSearchUsesEntressafraWildcardEscaping(): void
+    {
+        $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read', 'functions'])->getMock();
+        $service->method('functions')->willReturn(['00005' => 'Mecânico']);
+        $service->expects($this->once())->method('read')->with(TotvsEmployeeQueries::lookup(1),
+            ['name_term' => '%A[%][_][[]%', 'registration_term' => '%A[%][_][[]%', 'function_0' => '00005'])
+            ->willReturn([$this->row()]);
+
+        $this->assertSame('006783 - ABADIO OLIVEIRA - Mecânico', $service->search('A%_[')[0]['label']);
+    }
+
     public function testNormalAndVacationOnlyWithExactActiveFunctionCode(): void
     {
         foreach (['', ' ', 'F', 'D', 'A', 'X'] as $situation) {
@@ -92,9 +103,16 @@ class TotvsEmployeesServiceTest extends TestCase
             foreach ([true, false] as $find) {
                 $sql = TotvsEmployeeQueries::lookup($count, $find);
                 $this->assertTrue(TotvsEmployeeQueries::allows($sql));
+                $this->assertStringContainsString('FROM DADOSP12.dbo.SRA010', $sql);
                 $this->assertStringContainsString("IN ('', 'F')", $sql);
+                if ($find) {
+                    $this->assertStringContainsString('RTRIM(RA_MAT) = :registration', $sql);
+                } else {
+                    $this->assertStringContainsString('UPPER(RA_NOME) LIKE UPPER(:name_term)', $sql);
+                    $this->assertStringContainsString('UPPER(RA_MAT) LIKE UPPER(:registration_term)', $sql);
+                }
                 $this->assertStringNotContainsString('RA_FILIAL', $sql);
-                $this->assertFalse(TotvsEmployeeQueries::allows($sql . '; DELETE FROM dbo.SRA010'));
+                $this->assertFalse(TotvsEmployeeQueries::allows($sql . '; DELETE FROM DADOSP12.dbo.SRA010'));
                 $this->assertFalse(TotvsEmployeeQueries::allows(str_replace("IN ('', 'F')", "IN ('D')", $sql)));
             }
         }

@@ -14,7 +14,7 @@ class TotvsEmployeesService implements EmployeesLookupInterface
         if (mb_strlen($term) < 2 || mb_strlen($term) > 60) {
             return [];
         }
-        $pattern = '%' . strtr($term, ['~' => '~~', '%' => '~%', '_' => '~_', '[' => '~[']) . '%';
+        $pattern = '%' . strtr($term, ['[' => '[[]', '%' => '[%]', '_' => '[_]']) . '%';
         return $this->lookup(['name_term' => $pattern, 'registration_term' => $pattern], false);
     }
 

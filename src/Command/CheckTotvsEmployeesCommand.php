@@ -19,7 +19,7 @@ class CheckTotvsEmployeesCommand extends Command
             $rows = $connection->execute(TotvsEmployeeQueries::COLUMNS)->fetchAll('assoc');
             $expected = ['RA_MAT', 'RA_NOME', 'RA_CODFUNC', 'RA_SITFOLH'];
             if (array_diff($expected, array_column($rows, 'COLUMN_NAME'))) {
-                $io->err('Os campos necessários de dbo.SRA010 não estão todos visíveis. Consulte a TI.');
+                $io->err('Os campos necessários de DADOSP12.dbo.SRA010 não estão todos visíveis. Consulte a TI.');
                 return self::CODE_ERROR;
             }
             foreach ($rows as $row) {
@@ -29,7 +29,7 @@ class CheckTotvsEmployeesCommand extends Command
             $io->success('Leitura dos campos confirmada. Nenhum funcionário retornado e nenhuma gravação realizada.');
             return self::CODE_SUCCESS;
         } catch (\Throwable $e) {
-            $io->err('Não foi possível confirmar SELECT dos campos de dbo.SRA010 com a conexão atual. Consulte a TI; nenhuma alternativa de acesso foi tentada.');
+            $io->err('Não foi possível confirmar SELECT dos campos de DADOSP12.dbo.SRA010 com a conexão atual. Consulte a TI; nenhuma alternativa de acesso foi tentada.');
             return self::CODE_ERROR;
         }
     }

@@ -15,8 +15,8 @@ class TotvsEmployeeQueriesTest extends TestCase
         $this->assertTrue(TotvsEmployeeQueries::allows(TotvsEmployeeQueries::ACCESS));
         $this->assertStringContainsString('TOP (0)', TotvsEmployeeQueries::ACCESS);
         foreach ([str_replace('TOP (0)', 'TOP (1)', TotvsEmployeeQueries::ACCESS),
-            TotvsEmployeeQueries::ACCESS . '; DELETE FROM dbo.SRA010',
-            'SELECT * FROM dbo.SRA010', 'UPDATE dbo.SRA010 SET RA_NOME = NULL'] as $sql) {
+            TotvsEmployeeQueries::ACCESS . '; DELETE FROM DADOSP12.dbo.SRA010',
+            'SELECT * FROM DADOSP12.dbo.SRA010', 'UPDATE DADOSP12.dbo.SRA010 SET RA_NOME = NULL'] as $sql) {
             $this->assertFalse(TotvsEmployeeQueries::allows($sql));
             try {
                 (new ProtheusReadOnly())->prepare($sql);
