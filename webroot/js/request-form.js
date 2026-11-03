@@ -42,7 +42,6 @@ function initAutocomplete(group) {
     const branch = group.querySelector('[data-branch]');
     const list = group.querySelector('[role="listbox"]');
     const message = group.querySelector('.lookup-message');
-    const employee = group.dataset.kind === 'employee';
     let timer, controller, version = 0, active = -1;
     const close = () => {
         list.hidden = true;
@@ -52,8 +51,8 @@ function initAutocomplete(group) {
     };
     const choose = item => {
         const asset = group.dataset.kind === 'asset';
-        input.value = employee ? item.label : asset ? item.description + ' (' + item.code + ')' : item.name;
-        selected.value = employee ? item.registration : asset ? item.code : item.id;
+        input.value = asset ? item.description + ' (' + item.code + ')' : item.name;
+        selected.value = asset ? item.code : item.id;
         if (branch) branch.value = item.branch;
         if (asset) input.dispatchEvent(new CustomEvent('asset-selected', {detail: item}));
         message.textContent = 'Selecionado: ' + input.value;
@@ -95,7 +94,7 @@ function initAutocomplete(group) {
                     option.id = list.id + '-' + index;
                     option.setAttribute('role', 'option');
                     option.setAttribute('aria-selected', 'false');
-                    option.textContent = employee ? item.label : group.dataset.kind === 'asset'
+                    option.textContent = group.dataset.kind === 'asset'
                         ? item.description + ' (' + item.code + ')'
                         : item.name;
                     option.addEventListener('mousedown', event => event.preventDefault());
@@ -139,7 +138,7 @@ function initAutocomplete(group) {
         }
     });
 }
-document.querySelectorAll('.autocomplete').forEach(initAutocomplete);
+document.querySelectorAll('.autocomplete:not(.employee-field)').forEach(initAutocomplete);
 
 const items = document.getElementById('request-items');
 const add = document.getElementById('add-item');
@@ -167,7 +166,8 @@ if (items && add) {
         item.querySelector('[data-included]').value = '1';
         items.append(item);
         renumber();
-        initAutocomplete(item.querySelector('.autocomplete'));
+        initEmployeeAutocomplete(item.querySelector('.employee-field'));
+        item.querySelectorAll('.autocomplete:not(.employee-field)').forEach(initAutocomplete);
         item.querySelector('[data-search]').focus();
         items.dispatchEvent(new Event('change', {bubbles: true}));
         document.getElementById('items-message').textContent = 'Apontamento adicionado.';

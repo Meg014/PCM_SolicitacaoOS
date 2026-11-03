@@ -45,7 +45,7 @@ const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
  } catch(error) { document.getElementById('result').textContent='FAIL '+error.message; }
 })();
 JS;
-$html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'.file_get_contents('webroot/css/app.css').'</style></head><body><main class="container"><section class="request-form execution-form"><form><fieldset id="os-disposition"><input type="radio" name="os_disposition" value="MANTER_ABERTA" checked></fieldset><fieldset id="execution-initial">'.$element.'</fieldset></form></section><pre id="result">PENDING</pre></main><script>'.$harness.'</script><script>'.file_get_contents('webroot/js/request-form.js').'</script><script>'.$checks.'</script></body></html>';
+$html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'.file_get_contents('webroot/css/app.css').'</style></head><body><main class="container"><section class="request-form execution-form"><form><fieldset id="os-disposition"><input type="radio" name="os_disposition" value="MANTER_ABERTA" checked></fieldset><fieldset id="execution-initial">'.$element.'</fieldset></form></section><pre id="result">PENDING</pre></main><script>'.$harness.'</script><script>'.file_get_contents('webroot/js/request-form.js').'</script><script>'.file_get_contents('webroot/js/employee-autocomplete.js').'</script><script>'.$checks.'</script></body></html>';
 file_put_contents('tmp/employee-browser.html',$html);
 foreach ([360, 768, 1366] as $width) {
     $frame = '<!doctype html><html><head><meta charset="utf-8"></head><body>'

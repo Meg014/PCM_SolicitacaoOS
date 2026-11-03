@@ -79,7 +79,9 @@ class SubdirectoryTest extends TestCase
         }
         $this->assertResponseContains('data-lookup="' . self::BASE . '/api/funcionarios"');
         $this->assertResponseContains(self::BASE . '/js/request-form.js?v=');
+        $this->assertResponseContains(self::BASE . '/js/employee-autocomplete.js?v=');
         $this->assertSame(1, substr_count((string)$this->_response->getBody(), self::BASE . '/js/request-form.js?v='));
+        $this->assertSame(1, substr_count((string)$this->_response->getBody(), self::BASE . '/js/employee-autocomplete.js?v='));
         $this->get($this->url('/solicitacoes/1')); $this->assertResponseOk();
         $this->assertResponseContains('action="' . self::BASE . '/solicitacoes/1/vincular-os"');
         $this->assertSame(self::BASE . '/fotos/1', Router::url(['controller' => 'Attachments', 'action' => 'view', 1]));

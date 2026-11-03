@@ -1,6 +1,5 @@
 <?php
 $this->assign('title', 'Fazer apontamento nesta O.S.');
-$this->Html->script('request-form', ['block' => true, 'defer' => true]);
 ?>
 <section class="panel execution-form">
 <h1>Fazer apontamento nesta O.S.</h1>
