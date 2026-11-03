@@ -17,7 +17,7 @@ class CheckTotvsEmployeesCommand extends Command
         try {
             $connection = ConnectionManager::get('protheus');
             $rows = $connection->execute(TotvsEmployeeQueries::COLUMNS)->fetchAll('assoc');
-            $expected = ['RA_MAT', 'RA_NOME', 'RA_CODFUNC', 'RA_SITFOLH', 'RA_FILIAL', 'D_E_L_E_T_'];
+            $expected = ['RA_MAT', 'RA_NOME', 'RA_CODFUNC', 'RA_SITFOLH'];
             if (array_diff($expected, array_column($rows, 'COLUMN_NAME'))) {
                 $io->err('Os campos necessários de dbo.SRA010 não estão todos visíveis. Consulte a TI.');
                 return self::CODE_ERROR;

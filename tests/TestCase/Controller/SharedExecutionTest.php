@@ -23,6 +23,7 @@ class SharedExecutionTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
+        $this->mockService(\App\Service\EmployeesLookupInterface::class, fn() => new \App\Test\Support\FakeEmployees());
         $this->mockService(AssetsLookupInterface::class, fn() => $this->assets());
         \Cake\Datasource\ConnectionManager::get('test')->execute("SELECT setval(pg_get_serial_sequence('service_requests', 'id'), (SELECT MAX(id) FROM service_requests))");
     }
@@ -58,7 +59,7 @@ class SharedExecutionTest extends TestCase
 
     private function item(string $executor = 'Carlos', string $date = '2026-10-07'): array
     {
-        return ['executor' => $executor, 'service_date' => $date, 'start_time' => '08:00', 'end_time' => '09:30', 'description' => 'Revisão do motor'];
+        return ['employee_registration' => $executor, 'service_date' => $date, 'start_time' => '08:00', 'end_time' => '09:30', 'description' => 'Revisão do motor'];
     }
 
     private function postAction(string $action, array $data = []): void
@@ -69,7 +70,7 @@ class SharedExecutionTest extends TestCase
     public function testBothFlowsCanStartWithoutItemsAndDispositionIsMandatory(): void
     {
         foreach (RequestFlow::cases() as $flow) {
-            $request = (new RequestCreationService($this->assets()))->create($this->data($flow->value) + ['confirm_existing' => '1'], 3);
+            $request = (new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees()))->create($this->data($flow->value) + ['confirm_existing' => '1'], 3);
             $this->assertSame($flow->value, $request->flow);
             $this->assertSame(RequestStatus::AGUARDANDO_PCM->value, $request->status);
             $this->assertSame(0, TableRegistry::getTableLocator()->get('RequestItems')->find()->where(['request_id' => $request->id])->count());
@@ -126,7 +127,7 @@ class SharedExecutionTest extends TestCase
         $this->assertSame(['OS_ABERTA', 'EM_EXECUCAO', 'AGUARDANDO_ENCERRAMENTO'], array_map(fn($a) => $a->new_values['status'], $audits));
         $this->assertSame([1, 2, 3], array_column($audits, 'user_id'));
         $this->get('/solicitacoes/1'); $this->assertResponseOk();
-        $this->assertResponseContains('Marcos'); $this->assertResponseContains('08/10/2026 08:00');
+        $this->assertResponseContains('Marcos'); $this->assertResponseContains('08/10/2026');
         $this->assertResponseContains('Solicitação encerrada automaticamente');
     }
 
@@ -177,7 +178,7 @@ class SharedExecutionTest extends TestCase
     public function testInitialItemsMoveLinkedTrackingDirectlyToOngoing(): void
     {
         $data = $this->data(); $data['items'] = [$this->item()];
-        $request = (new RequestCreationService($this->assets()))->create($data, 3);
+        $request = (new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees()))->create($data, 3);
         (new RequestHandlingService())->handle($request->id, 1, 'link', '456');
         $this->assertSame(RequestStatus::EM_EXECUCAO->value, TableRegistry::getTableLocator()->get('ServiceRequests')->get($request->id)->status);
     }
@@ -240,7 +241,7 @@ class SharedExecutionTest extends TestCase
 
     public function testNewRequestRequiresExplicitConfirmationButIsAllowedAndAudited(): void
     {
-        $first = (new RequestCreationService($this->assets()))->create($this->data(), 2);
+        $first = (new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees()))->create($this->data(), 2);
         $this->session(['Auth' => 3]); $this->enableCsrfToken('pcm_solicitacao_os_csrf');
         $this->post('/solicitacoes/nova', $this->data()); $this->assertResponseOk();
         $this->assertResponseContains('Já existe solicitação ativa');
@@ -306,7 +307,7 @@ class SharedExecutionTest extends TestCase
         $audits = TableRegistry::getTableLocator()->get('RequestAudits');
         $audits->getValidator()->add('action', 'reject', ['rule' => fn() => false]);
         try {
-            (new RequestExecutionService())->handle(1, 2, 'items', [$this->item()]); $this->fail('Auditoria obrigatória.');
+            (new RequestExecutionService(new \App\Test\Support\FakeEmployees()))->handle(1, 2, 'items', [$this->item()]); $this->fail('Auditoria obrigatória.');
         } catch (\Cake\ORM\Exception\PersistenceFailedException $e) {
             $this->assertSame(RequestStatus::OS_ABERTA->value, $this->request()->status);
             $this->assertSame(0, TableRegistry::getTableLocator()->get('RequestItems')->find()->count());
@@ -316,6 +317,6 @@ class SharedExecutionTest extends TestCase
     public function testInactiveAccountCannotExecute(): void
     {
         $this->prepareTracking(); $this->expectException(\Cake\Http\Exception\ForbiddenException::class);
-        (new RequestExecutionService())->handle(1, 4, 'ongoing');
+        (new RequestExecutionService(new \App\Test\Support\FakeEmployees()))->handle(1, 4, 'ongoing');
     }
 }

@@ -25,6 +25,7 @@ return function (RouteBuilder $routes): void {
         }
         $builder->connect('/solicitacoes/{id}/novo-apontamento', ['controller' => 'Requests', 'action' => 'addItem'])->setPatterns(['id' => '[0-9]+'])->setPass(['id'])->setMethods(['GET', 'POST']);
         $builder->connect('/api/bens', ['controller' => 'Lookups', 'action' => 'assets'])->setMethods(['GET']);
+        $builder->connect('/api/funcionarios', ['controller' => 'Lookups', 'action' => 'employees'])->setMethods(['GET']);
         $builder->connect('/painel/atualizacao', ['controller' => 'Dashboard', 'action' => 'refresh'])->setMethods(['GET']);
         $builder->connect('/api/solicitacoes-ativas', ['controller' => 'Lookups', 'action' => 'active'])->setMethods(['GET']);
         $builder->connect('/acompanhamento', ['controller' => 'Requests', 'action' => 'work'])->setMethods(['GET']);

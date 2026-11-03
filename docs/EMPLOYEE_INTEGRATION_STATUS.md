@@ -1,61 +1,15 @@
-# Funcionários TOTVS — verificação de 26/10/2026
+# Funcionários TOTVS — atualização de 03/11/2026
 
-Projeto confirmado: `C:\PCM\Sistemas\PCM-Solicitacao-OS`.
+Fase de apontamentos implementada: grade compartilhada, autocomplete autenticado em `/api/funcionarios`, validação no servidor e snapshots locais. Migration `20261103000100_AddEmployeeSnapshotsToRequestItems` aplicada.
 
-## Evidências e impedimento
+O diagnóstico `php bin/cake.php check_totvs_employees` agora usa exclusivamente os quatro campos autorizados e confirmou SELECT, sem retornar funcionários: RA_MAT varchar(6), RA_NOME varchar(30), RA_CODFUNC varchar(5), RA_SITFOLH varchar(1). A negação registrada em 26/10 envolvia uma consulta anterior com campos adicionais; não descreve o acesso atual.
 
-Consulta pela conexão existente `protheus`, protegida pelo driver de somente leitura.
-Metadados de `dbo.SRA010` confirmaram os campos abaixo, todos `varchar`:
+A pesquisa consulta até 20 funcionários por nome/matrícula, parametrizada, limitada às funções locais ativas e situações vazio/espaço ou F. A/D são excluídas. Mantém zeros à esquerda. Correspondência de função é textual exata, sem converter `5` em `00005`.
 
-| Campo | Tamanho |
-| --- | --- |
-| RA_MAT | 6 |
-| RA_NOME | 30 |
-| RA_CODFUNC | 5 |
-| RA_SITFOLH | 1 |
-| RA_FILIAL | 2 |
-| D_E_L_E_T_ | 1 |
+O banco principal contém **zero funções permitidas ativas**. A busca retorna vazio sem ler funcionários. Pendente importar/ativar as funções autorizadas pelo processo administrativo existente e conferir a correspondência real dos códigos; esta fase não altera cadastros nem importa pessoas.
 
-O SELECT TOP (0) conjunto desses campos recebeu negação de permissão (SQLSTATE
-42000). Nenhum funcionário foi retornado. Visibilidade de metadados não comprova
-permissão de leitura dos campos. Não se tentou outra credencial, tabela ou acesso.
-Não foi possível determinar qual campo específico provocou a negação.
+Salvamento revalida seleção e guarda employee_registration, employee_name, employee_function_code e employee_function_name em request_items e na auditoria. Matrículas ambíguas são recusadas. Antigos executantes livres permanecem visíveis; histórico não depende do TOTVS.
 
-A TI precisa avaliar e liberar somente SELECT dos campos necessários à credencial
-já configurada. Depois, executar `php bin/cake.php check_totvs_employees`.
-O comando consulta metadados e zero registros, sem dados pessoais ou escrita.
+Testes usam funcionários simulados; a consulta de pessoas reais e a conferência visual pelo usuário dependem das funções ativas. Ambiente disponível PHP 8.2.12; repetir homologação em PHP 8.3+.
 
-## Estado da implementação
-
-A importação local de funções já estava presente ao iniciar este trabalho, assim
-como a migration `20261026000100_CreateAuthorizedFunctions.php`. Foi preservada.
-Prévia de `C:\Users\maria.goncalves\Desktop\Função.xlsx`: 45 funções válidas.
-Não foi encontrado `Função(1).xlsx`; confirmação da fonte está pendente.
-Nenhuma importação no banco principal foi feita nesta execução.
-
-Autocomplete, identidade de funcionário e nova interface ainda não foram
-implementados: a consulta real precisa ser confirmada primeiro, conforme o pedido.
-Não presumir equivalência entre códigos numéricos da planilha e códigos TOTVS
-com zeros. Não presumir significado de RA_SITFOLH nem traduzir vazio como NORMAL.
-
-O backend atual exige executante livre, data ISO e horários HH:MM, aceita horários
-iguais e rejeita fim anterior ao início. Descrição possui limite de 2000 caracteres
-com rejeição, sem truncamento. Não foi encontrada regra de sobreposição em
-RequestItemPreparation, RequestItemsTable ou RequestExecutionService.
-Vínculos, permissões, auditoria e validações existentes permanecem em uso.
-
-A imagem citada no pedido não está disponível nesta conversa. A tabela textual
-fornecida permite orientar a implementação posterior. HH versus HH:MM precisa
-ser tratado sem eliminar a precisão e as validações existentes.
-
-## Verificações executadas
-
-- Prévia XLSX: 45 funções válidas, sem gravação.
-- Testes da importação existente: 9 testes, 29 verificações, aprovados.
-- Testes de serviços: 19 testes, 104 verificações, aprovados.
-- Suíte completa: 181 testes, 1494 verificações, aprovada.
-- Sintaxe PHP dos arquivos de diagnóstico e `git diff --check`: aprovados.
-- Diagnóstico real: metadados disponíveis, SELECT de campos negado.
-
-Esses resultados verificam o sistema atual e o diagnóstico; não comprovam os dez
-cenários solicitados para a nova interface, ainda pendentes de implementação.
+Validação final: 195 testes PHPUnit aprovados; 48 verificações no Edge headless (360/768/1366 px); Composer, sintaxe PHP e diff aprovados. Interações verificadas: inclusão/remoção até lista vazia, reinclusão, renumeração, seleção por teclado/clique, invalidação ao editar, obrigatoriedade, IDs únicos, altura de toque e ausência de transbordamento horizontal. Fonte real de pessoas ainda não homologada por ausência de funções ativas.

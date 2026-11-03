@@ -36,12 +36,13 @@ if (photos) {
     }
 }
 
-document.querySelectorAll('.autocomplete').forEach(group => {
+function initAutocomplete(group) {
     const input = group.querySelector('[data-search]');
     const selected = group.querySelector('[data-selected]');
     const branch = group.querySelector('[data-branch]');
     const list = group.querySelector('[role="listbox"]');
     const message = group.querySelector('.lookup-message');
+    const employee = group.dataset.kind === 'employee';
     let timer, controller, version = 0, active = -1;
     const close = () => {
         list.hidden = true;
@@ -51,13 +52,14 @@ document.querySelectorAll('.autocomplete').forEach(group => {
     };
     const choose = item => {
         const asset = group.dataset.kind === 'asset';
-        input.value = asset ? item.description + ' (' + item.code + ')' : item.name;
-        selected.value = asset ? item.code : item.id;
+        input.value = employee ? item.label : asset ? item.description + ' (' + item.code + ')' : item.name;
+        selected.value = employee ? item.registration : asset ? item.code : item.id;
         if (branch) branch.value = item.branch;
         if (asset) input.dispatchEvent(new CustomEvent('asset-selected', {detail: item}));
         message.textContent = 'Selecionado: ' + input.value;
         input.setCustomValidity('');
         close();
+        input.dispatchEvent(new Event('change', {bubbles: true}));
         input.focus();
     };
     input.addEventListener('input', () => {
@@ -93,7 +95,7 @@ document.querySelectorAll('.autocomplete').forEach(group => {
                     option.id = list.id + '-' + index;
                     option.setAttribute('role', 'option');
                     option.setAttribute('aria-selected', 'false');
-                    option.textContent = group.dataset.kind === 'asset'
+                    option.textContent = employee ? item.label : group.dataset.kind === 'asset'
                         ? item.description + ' (' + item.code + ')'
                         : item.name;
                     option.addEventListener('mousedown', event => event.preventDefault());
@@ -130,55 +132,51 @@ document.querySelectorAll('.autocomplete').forEach(group => {
         if (!group.contains(event.relatedTarget)) close();
     });
     input.form.addEventListener('submit', event => {
-        if (!selected.value) {
+        if (group.isConnected && !input.disabled && (input.required || input.value.trim()) && !selected.value) {
             event.preventDefault();
             input.setCustomValidity('Pesquise e selecione um item da lista.');
             input.reportValidity();
         }
     });
-});
+}
+document.querySelectorAll('.autocomplete').forEach(initAutocomplete);
 
 const items = document.getElementById('request-items');
 const add = document.getElementById('add-item');
 if (items && add) {
+    let sequence = items.children.length;
     const renumber = () => {
         [...items.children].forEach((item, index) => {
-            const textarea = item.querySelector('textarea');
-            textarea.name = 'items[' + index + '][description]';
-            textarea.id = 'item-' + index;
-            item.querySelector('.item-title').textContent = 'Apontamento ' + (index + 1);
             item.querySelectorAll('[data-item-field]').forEach(input => {
-                const oldId = input.id;
                 input.name = 'items[' + index + '][' + input.dataset.itemField + ']';
-                input.id = 'item-' + index + '-' + input.dataset.itemField;
-                item.querySelectorAll('label').forEach(label => { if (label.htmlFor === oldId) label.htmlFor = input.id; });
             });
-            textarea.previousElementSibling.htmlFor = textarea.id;
             item.querySelector('[data-included]').name = 'items[' + index + '][_added]';
-            item.querySelector('.remove-item').disabled = items.children.length === 1 && !document.getElementById('os-disposition');
         });
         add.disabled = items.children.length >= 50;
     };
     add.addEventListener('click', () => {
         if (items.children.length >= 50) return;
-        const item = items.firstElementChild.cloneNode(true);
-        item.querySelector('textarea').value = '';
-        item.querySelectorAll('input, textarea').forEach(input => { input.value = ''; input.setCustomValidity(''); });
+        const fragment = document.getElementById('item-template').content.cloneNode(true);
+        const item = fragment.firstElementChild;
+        const key = 'dynamic-' + sequence++;
+        item.querySelectorAll('[id], [for], [aria-controls]').forEach(element => {
+            for (const attr of ['id', 'for', 'aria-controls']) {
+                if (element.hasAttribute(attr)) element.setAttribute(attr, element.getAttribute(attr).replace('new', key));
+            }
+        });
         item.querySelector('[data-included]').value = '1';
         items.append(item);
         renumber();
-        item.querySelector('textarea').focus();
+        initAutocomplete(item.querySelector('.autocomplete'));
+        item.querySelector('[data-search]').focus();
+        items.dispatchEvent(new Event('change', {bubbles: true}));
         document.getElementById('items-message').textContent = 'Apontamento adicionado.';
     });
     items.addEventListener('click', event => {
         if (!event.target.classList.contains('remove-item')) return;
-        if (items.children.length === 1) {
-            if (!document.getElementById('os-disposition')) return;
-            event.target.closest('.request-item').querySelectorAll('input, textarea').forEach(field => { field.value = ''; field.required = false; field.setCustomValidity(''); });
-            return;
-        }
         event.target.closest('.request-item').remove();
         renumber();
+        items.dispatchEvent(new Event('change', {bubbles: true}));
         add.focus();
         document.getElementById('items-message').textContent = 'Apontamento removido.';
     });
@@ -200,6 +198,7 @@ if (flow) {
     };
     flow.addEventListener('change', updateItems);
     fieldset.addEventListener('input', updateItems);
+    fieldset.addEventListener('change', updateItems);
     fieldset.addEventListener('click', () => queueMicrotask(updateItems));
     updateItems();
 }
@@ -264,7 +263,7 @@ document.addEventListener('invalid', event => {
     const messages = {unit: 'Selecione a unidade.', asset_label: 'Pesquise e selecione um equipamento da lista.',
         sector_id: 'Selecione a Mão de obra.', maintenance_type: 'Selecione o tipo de manutenção.',
         description: 'Descreva o serviço ou problema.', os_disposition: 'Escolha como a Ordem de Serviço deve seguir.'};
-    const itemMessages = {executor: 'Informe o executante.', service_date: 'Informe a data do serviço.',
+    const itemMessages = {employee_label: 'Pesquise e selecione um funcionário.', employee_registration: 'Selecione um funcionário.', service_date: 'Informe a data do serviço.',
         start_time: 'Informe a hora inicial.', end_time: 'Informe a hora final.', description: 'Descreva este apontamento.'};
     const key = field.dataset.itemField || (field.name?.startsWith('items[') ? 'description' : null);
     if (key || messages[field.name]) field.setCustomValidity(key ? itemMessages[key] : messages[field.name]);
@@ -272,7 +271,7 @@ document.addEventListener('invalid', event => {
 document.addEventListener('input', event => {
     if (event.target.setCustomValidity) event.target.setCustomValidity('');
     if (event.target.required && event.target.value !== '' && event.target.value.trim() === '') {
-        event.target.setCustomValidity(event.target.dataset.itemField === 'executor' ? 'Informe o executante.' : 'Descreva o serviço.');
+        event.target.setCustomValidity(event.target.dataset.itemField === 'employee_label' ? 'Pesquise e selecione um funcionário.' : 'Descreva o serviço.');
     }
     if (event.target.name === 'os_disposition') document.querySelectorAll('[name="os_disposition"]').forEach(field => field.setCustomValidity(''));
     const row = event.target.closest('.request-item');

@@ -27,6 +27,7 @@ class PhaseFourTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
+        $this->mockService(\App\Service\EmployeesLookupInterface::class, fn() => new \App\Test\Support\FakeEmployees());
         $this->originalPath = Configure::read('Attachments.path');
         $this->storage = TMP . 'photos-test-' . bin2hex(random_bytes(8));
         Configure::write('Attachments.path', $this->storage);
@@ -66,7 +67,7 @@ class PhaseFourTest extends TestCase
     {
         return ['flow' => 'ACOMPANHAMENTO', 'os_disposition' => 'MANTER_ABERTA', 'confirm_existing' => '1', 'unit' => 'USINA', 'asset_code' => 'BEM01', 'asset_branch' => '01', 'sector_id' => 1,
             'maintenance_type' => MaintenanceType::CORRETIVA->value, 'description' => 'Pedido com fotos',
-            'items' => [['description' => 'Serviço', 'executor' => 'Equipe externa', 'service_date' => '2026-10-07', 'start_time' => '08:00', 'end_time' => '09:00']], 'photos' => $photos];
+            'items' => [['description' => 'Serviço', 'employee_registration' => 'Equipe externa', 'service_date' => '2026-10-07', 'start_time' => '08:00', 'end_time' => '09:00']], 'photos' => $photos];
     }
 
     public function testUploadDuringCreationStoresPhotosAndAudit(): void
@@ -126,7 +127,7 @@ class PhaseFourTest extends TestCase
 
     public function testAttachmentAuthorization(): void
     {
-        $request = (new RequestCreationService($this->assets()))->create(array_replace($this->data([$this->photo()]), ['flow' => 'SOMENTE_ABERTURA', 'os_disposition' => 'SOMENTE_ABERTURA', 'items' => []]), 2);
+        $request = (new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees()))->create(array_replace($this->data([$this->photo()]), ['flow' => 'SOMENTE_ABERTURA', 'os_disposition' => 'SOMENTE_ABERTURA', 'items' => []]), 2);
         $photo = TableRegistry::getTableLocator()->get('RequestAttachments')->find()->where(['request_id' => $request->id])->firstOrFail();
         $this->get('/fotos/' . $photo->id);
         $this->assertRedirect('/entrar');
@@ -145,7 +146,7 @@ class PhaseFourTest extends TestCase
 
     public function testOwnerCanSeePhotoAndHumanTimeline(): void
     {
-        $request = (new RequestCreationService($this->assets()))->create($this->data([$this->photo()]), 3);
+        $request = (new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees()))->create($this->data([$this->photo()]), 3);
         $photo = TableRegistry::getTableLocator()->get('RequestAttachments')->find()->firstOrFail();
         $this->session(['Auth' => 3]);
         $this->get('/fotos/' . $photo->id);
@@ -164,7 +165,7 @@ class PhaseFourTest extends TestCase
         $photos = TableRegistry::getTableLocator()->get('RequestAttachments');
         $photos->getValidator()->add('original_name', 'reject', ['rule' => fn() => false]);
         try {
-            (new RequestCreationService($this->assets()))->create($this->data([$this->photo()]), 3);
+            (new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees()))->create($this->data([$this->photo()]), 3);
             $this->fail('A falha de metadados deve desfazer a criação.');
         } catch (\Cake\ORM\Exception\PersistenceFailedException $e) {
             $this->assertSame(2, TableRegistry::getTableLocator()->get('ServiceRequests')->find()->count());

@@ -13,6 +13,8 @@ use Cake\ORM\TableRegistry;
 
 final class RequestExecutionService
 {
+    public function __construct(private ?EmployeesLookupInterface $employees = null) {}
+
     public function handle(int $id, int $actorId, string $action, mixed $data = null): void
     {
         $tables = TableRegistry::getTableLocator();
@@ -33,7 +35,7 @@ final class RequestExecutionService
             $now = new \Cake\I18n\DateTime('now', 'UTC');
             $values = [];
             if ($action === 'items') {
-                $items = RequestItemPreparation::prepare($data, 1);
+                $items = RequestItemPreparation::prepare($data, 1, $this->employees);
                 $itemTable = $tables->get('RequestItems');
                 $last = $itemTable->find()->where(['request_id' => $id])->orderBy(['position' => 'DESC'])->first();
                 $position = $last ? $last->position : 0;

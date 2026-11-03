@@ -22,6 +22,7 @@ class OsDispositionTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
+        $this->mockService(\App\Service\EmployeesLookupInterface::class, fn() => new \App\Test\Support\FakeEmployees());
         \Cake\Datasource\ConnectionManager::get('test')->execute("SELECT setval(pg_get_serial_sequence('service_requests', 'id'), (SELECT MAX(id) FROM service_requests))");
         $this->mockService(AssetsLookupInterface::class, fn() => $this->assets());
     }
@@ -52,7 +53,7 @@ class OsDispositionTest extends TestCase
     {
         $table = TableRegistry::getTableLocator()->get('ServiceRequests');
         foreach (OsDisposition::cases() as $choice) {
-            $request = (new RequestCreationService($this->assets()))->create($this->data($choice), 3);
+            $request = (new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees()))->create($this->data($choice), 3);
             $this->assertSame($choice->value, $request->os_disposition);
             $this->assertSame($choice === OsDisposition::SOMENTE_ABERTURA ? 'SOMENTE_ABERTURA' : 'ACOMPANHAMENTO', $request->flow);
             (new RequestHandlingService())->handle($request->id, 1, 'link', '004564-' . $request->id);
@@ -85,12 +86,12 @@ class OsDispositionTest extends TestCase
 
     public function testSharedContinuationChangesOrientationAndAuditsActor(): void
     {
-        $request = (new RequestCreationService($this->assets()))->create($this->data(OsDisposition::MANTER_ABERTA), 3);
+        $request = (new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees()))->create($this->data(OsDisposition::MANTER_ABERTA), 3);
         (new RequestHandlingService())->handle($request->id, 1, 'link', '123');
-        (new RequestExecutionService())->handle($request->id, 2, 'items', [[
-            'executor' => 'Outro turno', 'service_date' => '2026-10-08', 'start_time' => '08:00', 'end_time' => '09:00', 'description' => 'Revisão',
+        (new RequestExecutionService(new \App\Test\Support\FakeEmployees()))->handle($request->id, 2, 'items', [[
+            'employee_registration' => 'Outro turno', 'service_date' => '2026-10-08', 'start_time' => '08:00', 'end_time' => '09:00', 'description' => 'Revisão',
         ]]);
-        (new RequestExecutionService())->handle($request->id, 2, 'complete');
+        (new RequestExecutionService(new \App\Test\Support\FakeEmployees()))->handle($request->id, 2, 'complete');
         $saved = TableRegistry::getTableLocator()->get('ServiceRequests')->get($request->id);
         $this->assertSame(3, $saved->user_id); $this->assertSame('PODE_ENCERRAR', $saved->os_disposition);
         $audit = TableRegistry::getTableLocator()->get('RequestAudits')->find()->where(['request_id' => $request->id, 'action' => 'OS_DISPOSITION_CHANGED'])->firstOrFail();
@@ -104,7 +105,7 @@ class OsDispositionTest extends TestCase
 
     public function testCanCloseChoiceWaitsForPcmConfirmationAndIsHighlightedBeforeLink(): void
     {
-        $request = (new RequestCreationService($this->assets()))->create($this->data(OsDisposition::PODE_ENCERRAR), 3);
+        $request = (new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees()))->create($this->data(OsDisposition::PODE_ENCERRAR), 3);
         $this->session(['Auth' => 1]); $this->get('/solicitacoes/' . $request->id); $this->assertResponseOk();
         $this->assertGreaterThanOrEqual(2, substr_count((string)$this->_response->getBody(), 'O.S. PODE SER ENCERRADA'));
         $this->get('/painel'); $this->assertResponseContains('O.S. PODE SER ENCERRADA');
@@ -127,7 +128,7 @@ class OsDispositionTest extends TestCase
                 $this->assertResponseCode(302);
             }
         }
-        $this->assertSame(17, TableRegistry::getTableLocator()->get('ServiceRequests')->find()->count());
+        $this->assertSame(2 + count(\App\Domain\Enum\UserRole::cases()) * count(OsDisposition::cases()), TableRegistry::getTableLocator()->get('ServiceRequests')->find()->count());
     }
 
     public function testQueueOrdersActivityAcrossActiveStatusesAndExcludesTerminal(): void

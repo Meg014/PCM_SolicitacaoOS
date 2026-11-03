@@ -96,7 +96,7 @@ class AccessReviewTest extends TestCase
 
     public function testProfileBasedHomeAndMenus(): void
     {
-        foreach ([1 => '/painel', 2 => '/painel', 3 => '/minhas-solicitacoes'] as $id => $destination) {
+        foreach ([1 => '/painel', 2 => '/painel', 3 => '/acompanhamento'] as $id => $destination) {
             $this->session(['Auth' => $id]);
             $this->get('/');
             $this->assertRedirect($destination);

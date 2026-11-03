@@ -11,9 +11,9 @@ class RequestItemsTable extends Table
     public function validationDefault(Validator $validator): Validator
     {
         return $validator
-            ->requirePresence('executor', 'create', 'Informe o executante.')->scalar('executor')->notEmptyString('executor', 'Informe o executante.')
-            ->maxLength('executor', 150)
-            ->add('executor', 'notBlank', ['rule' => fn($value) => trim($value) !== '', 'message' => 'Informe o executante.'])
+            ->requirePresence('employee_registration', 'create', 'Selecione o funcionário.')->scalar('employee_registration')->notEmptyString('employee_registration', 'Selecione o funcionário.')
+            ->maxLength('employee_registration', 100)
+            ->add('employee_registration', 'notBlank', ['rule' => fn($value) => is_string($value) && trim($value) !== '', 'message' => 'Selecione o funcionário.'])
             ->requirePresence('service_date', 'create', 'Informe a data do serviço.')->notEmptyString('service_date', 'Informe a data do serviço.')
             ->add('service_date', 'calendar', ['rule' => static function ($value): bool {
                 if (!is_string($value) || !preg_match('/^\d{4}-\d{2}-\d{2}$/D', $value)) { return false; }
@@ -30,6 +30,6 @@ class RequestItemsTable extends Table
             }, 'message' => 'A hora final não pode ser anterior à hora inicial.'])
             ->requirePresence('description', 'create', 'Descreva este apontamento.')->scalar('description')
             ->notEmptyString('description', 'Descreva este apontamento.')->maxLength('description', 2000)
-            ->add('description', 'notBlank', ['rule' => fn($value) => trim($value) !== '', 'message' => 'Descreva este apontamento.']);
+            ->add('description', 'notBlank', ['rule' => fn($value) => is_string($value) && trim($value) !== '', 'message' => 'Descreva este apontamento.']);
     }
 }

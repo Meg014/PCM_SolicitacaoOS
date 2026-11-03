@@ -18,6 +18,12 @@ class HomologationTest extends TestCase
     protected array $fixtures = ['app.UserDepartments', 'app.Users', 'app.Sectors', 'app.RegistrationAudits',
         'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
 
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->mockService(\App\Service\EmployeesLookupInterface::class, fn() => new \App\Test\Support\FakeEmployees());
+    }
+
     private function table(string $name): \Cake\ORM\Table { return TableRegistry::getTableLocator()->get($name); }
     private function assets(): AssetsLookupInterface
     {
@@ -34,7 +40,7 @@ class HomologationTest extends TestCase
     }
     private function item(): array
     {
-        return ['executor' => 'Executante externo', 'service_date' => '2026-10-13',
+        return ['employee_registration' => 'Executante externo', 'service_date' => '2026-10-13',
             'start_time' => '08:00', 'end_time' => '09:00', 'description' => 'Troca de vedação'];
     }
     private function track(int $id = 1): void
@@ -49,7 +55,7 @@ class HomologationTest extends TestCase
 
     public function testRequiredRequestFieldsMissingEmptyAndInvalidSelections(): void
     {
-        $creation = new RequestCreationService($this->assets());
+        $creation = new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees());
         foreach (['unit', 'asset_code', 'sector_id', 'maintenance_type', 'description', 'os_disposition'] as $field) {
             foreach (['missing', 'empty'] as $case) {
                 $data = $this->data();
@@ -74,8 +80,8 @@ class HomologationTest extends TestCase
     public function testOptionalAndCompleteInitialItemsAndPartialRows(): void
     {
         $this->table('ServiceRequests')->getConnection()->execute("SELECT setval(pg_get_serial_sequence('service_requests', 'id'), (SELECT MAX(id) FROM service_requests))");
-        $creation = new RequestCreationService($this->assets());
-        foreach ([[], [['executor' => '', 'description' => '', 'service_date' => '', 'start_time' => '', 'end_time' => '']]] as $rows) {
+        $creation = new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees());
+        foreach ([[], [['employee_registration' => '', 'description' => '', 'service_date' => '', 'start_time' => '', 'end_time' => '']]] as $rows) {
             $data = $this->data(); $data['items'] = $rows; $request = $creation->create($data, 3);
             $this->assertSame(0, $this->table('RequestItems')->find()->where(['request_id' => $request->id])->count());
         }
@@ -126,12 +132,12 @@ class HomologationTest extends TestCase
     public function testAppendFailuresDoNotUpdateActivityOrCreateRecords(): void
     {
         $this->track(); $this->session(['Auth' => 2]);
-        $this->postForm('/solicitacoes/1/novo-apontamento', ['items' => [['executor' => 'Pessoa']]]);
+        $this->postForm('/solicitacoes/1/novo-apontamento', ['items' => [['employee_registration' => 'Pessoa']]]);
         $this->assertResponseOk(); $this->assertResponseContains('Informe a data do serviço');
         $this->assertNull($this->table('ServiceRequests')->get(1)->last_activity_at);
         $this->assertSame(0, $this->table('RequestItems')->find()->count());
         $this->table('RequestAudits')->getValidator()->add('action', 'reject', ['rule' => fn() => false]);
-        try { (new RequestExecutionService())->handle(1, 2, 'items', [$this->item()]); $this->fail('Auditoria deveria impedir gravação'); }
+        try { (new RequestExecutionService(new \App\Test\Support\FakeEmployees()))->handle(1, 2, 'items', [$this->item()]); $this->fail('Auditoria deveria impedir gravação'); }
         catch (PersistenceFailedException $e) {
             $this->assertNull($this->table('ServiceRequests')->get(1)->last_activity_at);
             $this->assertSame(0, $this->table('RequestItems')->find()->count());
@@ -163,7 +169,7 @@ class HomologationTest extends TestCase
         $this->session(['Auth' => 1]); $this->get('/painel');
         $before = (string)$this->_response->getBody();
         $this->assertLessThan(strpos($before, '>SOL-2026-000001</a>'), strpos($before, '>SOL-2026-000002</a>'));
-        (new RequestExecutionService())->handle(1, 2, 'items', [$this->item()]);
+        (new RequestExecutionService(new \App\Test\Support\FakeEmployees()))->handle(1, 2, 'items', [$this->item()]);
         $this->get('/painel'); $body = (string)$this->_response->getBody();
         $this->assertLessThan(strpos($body, '>SOL-2026-000002</a>'), strpos($body, '>SOL-2026-000001</a>'));
         $this->assertResponseContains('NOVO APONTAMENTO');
@@ -179,7 +185,7 @@ class HomologationTest extends TestCase
     {
         $table = $this->table('ServiceRequests');
         $table->getConnection()->execute("SELECT setval(pg_get_serial_sequence('service_requests', 'id'), (SELECT MAX(id) FROM service_requests))");
-        $creation = new RequestCreationService($this->assets());
+        $creation = new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees());
         $this->session(['Auth' => 1]);
         $assertOrder = function (array $numbers, bool $badge): void {
             foreach (['/painel', '/painel/atualizacao', '/painel/atualizacao?sort=created_at&direction=asc'] as $url) {
@@ -199,7 +205,7 @@ class HomologationTest extends TestCase
             $assertOrder([$second->number, $first->number, ...$legacy], false);
             $this->track($first->id);
             \Cake\I18n\DateTime::setTestNow('2026-10-13 14:20:00');
-            (new RequestExecutionService())->handle($first->id, 2, 'items', [$this->item()]);
+            (new RequestExecutionService(new \App\Test\Support\FakeEmployees()))->handle($first->id, 2, 'items', [$this->item()]);
             $this->assertSame('14:20', $table->get($first->id)->last_activity_at->format('H:i'));
             $assertOrder([$first->number, $second->number, ...$legacy], true);
             \Cake\I18n\DateTime::setTestNow('2026-10-13 14:25:00');

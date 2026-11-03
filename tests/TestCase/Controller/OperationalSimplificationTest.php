@@ -31,7 +31,7 @@ class OperationalSimplificationTest extends TestCase
     }
     private function item(): array
     {
-        return ['executor' => 'Executante de campo', 'service_date' => '2026-10-13', 'start_time' => '08:00',
+        return ['employee_registration' => 'Executante de campo', 'service_date' => '2026-10-13', 'start_time' => '08:00',
             'end_time' => '09:00', 'description' => 'Serviço registrado'];
     }
 
@@ -76,7 +76,7 @@ class OperationalSimplificationTest extends TestCase
 
     public function testSnapshotsRecordEveryActionAndSurviveUserChanges(): void
     {
-        $this->tracking(); $handling = new RequestHandlingService(); $execution = new RequestExecutionService();
+        $this->tracking(); $handling = new RequestHandlingService(); $execution = new RequestExecutionService(new \App\Test\Support\FakeEmployees());
         $handling->handle(1, 1, 'link', 'SNAPSHOT-OS');
         $execution->handle(1, 2, 'items', [$this->item()]);
         $execution->handle(1, 3, 'ongoing');
@@ -116,7 +116,7 @@ class OperationalSimplificationTest extends TestCase
         $this->table('ServiceRequests')->getConnection()->execute("SELECT setval(pg_get_serial_sequence('service_requests', 'id'), (SELECT MAX(id) FROM service_requests))");
         $assets = $this->createMock(AssetsLookupInterface::class);
         $assets->method('find')->willReturn(['code' => 'NOVO', 'branch' => '01', 'description' => 'Bem novo']);
-        $request = (new RequestCreationService($assets))->create(['unit' => 'USINA', 'asset_code' => 'NOVO', 'asset_branch' => '01',
+        $request = (new RequestCreationService($assets, new \App\Test\Support\FakeEmployees()))->create(['unit' => 'USINA', 'asset_code' => 'NOVO', 'asset_branch' => '01',
             'sector_id' => 1, 'maintenance_type' => 'CORRETIVA', 'description' => 'Pedido', 'os_disposition' => 'MANTER_ABERTA', 'items' => [$this->item()]], 3);
         $audit = $this->table('RequestAudits')->find()->where(['request_id' => $request->id, 'action' => 'REQUEST_CREATED'])->firstOrFail();
         $this->assertSame('user3', $audit->actor_snapshot['username']); $this->assertSame('MANTENEDOR', $audit->actor_snapshot['role']);

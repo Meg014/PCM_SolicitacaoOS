@@ -63,17 +63,20 @@ $pending = in_array($request->status, [\App\Domain\Enum\RequestStatus::AGUARDAND
 <p class="preserve-lines"><?= h($request->description) ?></p>
 <h2>Apontamentos</h2>
 <?php if (!$request->request_items): ?><p>Nenhum apontamento registrado.</p><?php endif; ?>
-<ol>
+<div class="execution-grid">
 <?php foreach ($request->request_items as $item): ?>
-<li class="item-detail">
-<p><strong>Executante:</strong> <?= h($item->executor ?: 'Não informado (registro anterior)') ?></p>
-<p><strong>Data e horário:</strong> <?= $item->started_at && $item->ended_at ? h($item->started_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i') . ' até ' . $item->ended_at->setTimezone('America/Sao_Paulo')->format('H:i')) : 'Não informados (registro anterior)' ?></p>
-<p class="preserve-lines"><?= h($item->description) ?></p>
-</li>
+<div class="execution-row execution-saved">
+<div class="employee-field"><label>Funcionário</label><p><?= h($item->employee_registration ? $item->employee_registration . ' - ' . $item->employee_name . ' - ' . $item->employee_function_name : ($item->executor ?: 'Não informado (registro anterior)')) ?></p></div>
+<div><label>Data</label><p><?= $item->started_at ? h($item->started_at->setTimezone('America/Sao_Paulo')->format('d/m/Y')) : 'Não informada' ?></p></div>
+<div><label>Hora início</label><p><?= $item->started_at ? h($item->started_at->setTimezone('America/Sao_Paulo')->format('H:i')) : 'Não informada' ?></p></div>
+<div><label>Hora fim</label><p><?= $item->ended_at ? h($item->ended_at->setTimezone('America/Sao_Paulo')->format('H:i')) : 'Não informada' ?></p></div>
+<div><label>Serviço realizado</label><p class="preserve-lines"><?= h($item->description) ?></p></div>
+<div><span class="execution-action-label">Ações</span>—</div>
+</div>
 <?php endforeach; ?>
-</ol>
+</div>
 <?php if ($request->flow === \App\Domain\Enum\RequestFlow::ACOMPANHAMENTO->value && in_array($request->status, [\App\Domain\Enum\RequestStatus::OS_ABERTA->value, \App\Domain\Enum\RequestStatus::EM_EXECUCAO->value], true)): ?>
-<section class="handling" id="execution"><h2>Continuar apontando nesta O.S.</h2>
+<section class="handling execution-form" id="execution"><h2>Continuar apontando nesta O.S.</h2>
 <p>Qualquer integrante autorizado pode registrar o serviço realizado em outro dia ou turno. Informe quem executou e o período de cada apontamento.</p>
 <?= $this->Form->create(null, ['url' => ['action' => 'items', $request->id, '_method' => 'POST']]) ?>
 <?= $this->element('execution_items') ?>

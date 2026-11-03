@@ -61,18 +61,11 @@ Campos mínimos:
 Na solicitação, o usuário pesquisa e seleciona apenas setores ativos.
 
 ## 7. Apontamentos
-Uma solicitação pode ter vários itens/apontamentos.
+Uma solicitação pode ter vários apontamentos, exibidos em grade compacta: Funcionário, Data, Hora início, Hora fim, Serviço realizado e Ações (+/−). No celular a linha se reorganiza sem card individual.
 
-Cada item contém pelo menos:
-- descrição;
-- ordem de exibição;
-- created_at.
+Funcionário é selecionado por nome/matrícula no TOTVS, somente nas funções locais ativas e situações vazio/espaço ou F. Seleção revalidada ao salvar; matrícula, nome, código e descrição da função ficam em snapshot local e na auditoria. Não importar funcionários. Usar exclusivamente RA_MAT, RA_NOME, RA_CODFUNC e RA_SITFOLH.
 
-Na interface:
-- primeiro item já visível;
-- botão `+ Adicionar apontamento`;
-- permitir remover item ainda não salvo;
-- não exigir criação de várias solicitações para o mesmo equipamento quando os serviços pertencem ao mesmo pedido.
+Apontamento inicial vazio é opcional conforme o fluxo vigente. Qualquer linha adicionada/preenchida exige funcionário, data, início, fim e serviço. Até 50 linhas, com ordem, autoria e data de registro; preservar apontamentos anteriores e os fluxos homologados.
 
 ## 8. Status
 

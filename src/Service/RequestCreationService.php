@@ -11,7 +11,7 @@ use Cake\ORM\TableRegistry;
 
 class RequestCreationService
 {
-    public function __construct(private AssetsLookupInterface $assets) {}
+    public function __construct(private AssetsLookupInterface $assets, private ?EmployeesLookupInterface $employees = null) {}
 
     public function create(array $data, int $userId): ServiceRequest
     {
@@ -35,7 +35,7 @@ class RequestCreationService
             if ($entity->flow === RequestFlow::SOMENTE_ABERTURA->value && $raw) {
                 throw new \InvalidArgumentException('Apontamentos são permitidos apenas no fluxo com acompanhamento.');
             }
-            $items = RequestItemPreparation::prepare($raw);
+            $items = RequestItemPreparation::prepare($raw, 0, $this->employees);
         } catch (\InvalidArgumentException $e) {
             $entity->setError('items', $e->getMessage());
             $items = [];

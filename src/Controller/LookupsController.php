@@ -8,6 +8,20 @@ use App\Service\AssetsUnavailableException;
 
 class LookupsController extends AppController
 {
+    public function employees(\App\Service\EmployeesLookupInterface $employees): mixed
+    {
+        $this->request->allowMethod(['get']);
+        $term = $this->request->getQuery('q', '');
+        if (!is_string($term)) {
+            return $this->json(['error' => 'Informe um nome ou matrícula para pesquisar.'], 400);
+        }
+        try {
+            return $this->json(['results' => $employees->search($term)]);
+        } catch (\App\Service\EmployeesUnavailableException $e) {
+            return $this->json(['error' => $e->getMessage()], 503);
+        }
+    }
+
     public function assets(AssetsLookupInterface $assets): mixed
     {
         $this->request->allowMethod(['get']);

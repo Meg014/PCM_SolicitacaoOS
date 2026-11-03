@@ -42,9 +42,9 @@ class HandlingTest extends TestCase
         $this->assertResponseCode(403);
     }
 
-    public function testManagerAndRequesterCannotHandle(): void
+    public function testMaintainerCannotHandle(): void
     {
-        foreach ([2, 3] as $id) {
+        foreach ([3] as $id) {
             $this->session(['Auth' => $id]);
             foreach (['vincular-os' => ['totvs_os_number' => '123'], 'cancelar' => ['reason' => 'Recusada']] as $action => $data) {
                 $this->postAction($action, $data);

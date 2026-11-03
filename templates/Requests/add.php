@@ -6,7 +6,7 @@ $text = fn($value) => is_scalar($value) ? (string)$value : '';
 
 
 ?>
-<section class="request-form">
+<section class="request-form execution-form">
 <h1>Nova Ordem de Serviço</h1>
 <p>Solicitante: <strong><?= h($this->getRequest()->getAttribute('identity')->get('name')) ?></strong></p>
 <?php /* Unidade é independente da filial TOTVS do Bem. */ ?>

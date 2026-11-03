@@ -23,6 +23,7 @@ class RequestsControllerTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
+        $this->mockService(\App\Service\EmployeesLookupInterface::class, fn() => new \App\Test\Support\FakeEmployees());
         $this->mockService(AssetsLookupInterface::class, fn() => new class implements AssetsLookupInterface {
             public function search(string $term): array
             {
@@ -48,7 +49,7 @@ class RequestsControllerTest extends TestCase
             'sector_id' => 1, 'sector_label' => 'Manutenção',
             'maintenance_type' => MaintenanceType::CORRETIVA->value,
             'description' => 'Vazamento na bomba',
-            'items' => [['description' => 'Trocar vedação', 'executor' => 'José externo', 'service_date' => '2026-10-06', 'start_time' => '08:00', 'end_time' => '09:00'], ['description' => 'Verificar tubulação', 'executor' => 'Maria externa', 'service_date' => '2026-10-07', 'start_time' => '10:00', 'end_time' => '11:30']],
+            'items' => [['description' => 'Trocar vedação', 'employee_registration' => 'José externo', 'service_date' => '2026-10-06', 'start_time' => '08:00', 'end_time' => '09:00'], ['description' => 'Verificar tubulação', 'employee_registration' => 'Maria externa', 'service_date' => '2026-10-07', 'start_time' => '10:00', 'end_time' => '11:30']],
         ];
     }
 
@@ -156,7 +157,7 @@ class RequestsControllerTest extends TestCase
     public function testInvalidItemsTypeAndBlankDescriptionAreRejected(): void
     {
         $this->session(['Auth' => 3]);
-        foreach ([['items' => 'inválido'], ['items' => [['description' => ' ', 'executor' => 'José']]], ['maintenance_type' => 'INVALID'], ['description' => ' '], ['items' => array_fill(0, 51, ['description' => 'Item'])]] as $change) {
+        foreach ([['items' => 'inválido'], ['items' => [['description' => ' ', 'employee_registration' => 'José']]], ['maintenance_type' => 'INVALID'], ['description' => ' '], ['items' => array_fill(0, 51, ['description' => 'Item'])]] as $change) {
             $this->submit(array_replace($this->payload(), $change));
             $this->assertResponseOk();
         }
@@ -321,8 +322,8 @@ class RequestsControllerTest extends TestCase
         $this->assertSame('José externo', $request->request_audits[0]->new_values['items'][0]['executor']);
         $this->get('/solicitacoes/' . $request->id);
         $this->assertResponseOk();
-        $this->assertResponseContains('06/10/2026 08:00');
-        $this->assertResponseContains('07/10/2026 10:00');
+        $this->assertResponseContains('06/10/2026');
+        $this->assertResponseContains('07/10/2026');
         $this->assertResponseContains('José externo');
         $this->assertResponseContains('Maria externa');
     }
@@ -330,14 +331,14 @@ class RequestsControllerTest extends TestCase
     public function testRequiredExecutionFieldsAndTimeValidation(): void
     {
         $this->session(['Auth' => 3]);
-        foreach ([['executor' => ' '], ['service_date' => '2026-02-30'], ['start_time' => '25:00'], ['end_time' => '07:59']] as $change) {
+        foreach ([['employee_registration' => ' '], ['service_date' => '2026-02-30'], ['start_time' => '25:00'], ['end_time' => '07:59']] as $change) {
             $data = $this->payload();
             $data['items'][0] = array_replace($data['items'][0], $change);
             $this->submit($data);
             $this->assertResponseOk();
             $this->assertSame(2, $this->requests()->find()->count());
         }
-        foreach (['executor', 'service_date', 'start_time', 'end_time'] as $field) {
+        foreach (['employee_registration', 'service_date', 'start_time', 'end_time'] as $field) {
             $data = $this->payload();
             unset($data['items'][0][$field]);
             $this->submit($data);
@@ -356,7 +357,7 @@ class RequestsControllerTest extends TestCase
         $this->get('/solicitacoes/1');
         $this->assertResponseOk();
         $this->assertResponseContains('Serviço anterior');
-        $this->assertResponseContains('Não informados (registro anterior)');
+        $this->assertResponseContains('Não informada');
     }
 
     public function testPcmActionsAndSingleHomeNavigation(): void
@@ -375,7 +376,7 @@ class RequestsControllerTest extends TestCase
         $this->assertResponseContains('Vincular O.S. TOTVS');
         $this->session(['Auth' => 2]);
         $this->get('/solicitacoes/1');
-        $this->assertResponseNotContains('Ações do PCM');
+        $this->assertResponseContains('Ações do PCM');
     }
 
     public function testTouchFormHasOperationalFieldOrderAndAutomaticRequester(): void

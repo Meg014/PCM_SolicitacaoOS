@@ -32,7 +32,7 @@ class RequestsController extends AppController
                 $this->Flash->error('Revise os campos indicados. A solicitação ainda não foi enviada.');
             } catch (\App\Service\UploadException $e) {
                 $this->Flash->error($e->getMessage() . ' Selecione as fotos novamente antes de enviar.');
-            } catch (AssetsUnavailableException $e) {
+            } catch (AssetsUnavailableException | \App\Service\EmployeesUnavailableException $e) {
                 $this->Flash->error($e->getMessage() . ' Seus dados continuam no formulário.');
             } catch (\PDOException $e) {
                 $this->Flash->error('Não foi possível enviar a solicitação agora. Tente novamente.');
@@ -104,7 +104,7 @@ class RequestsController extends AppController
         $this->set(compact('requests'));
     }
 
-    public function addItem(string $id): mixed
+    public function addItem(string $id, \App\Service\EmployeesLookupInterface $employees): mixed
     {
         $this->request->allowMethod(['get', 'post']);
         $this->view($id);
@@ -114,11 +114,11 @@ class RequestsController extends AppController
         }
         if ($this->request->is('post')) {
             try {
-                (new \App\Service\RequestExecutionService())->handle((int)$id,
+                (new \App\Service\RequestExecutionService($employees))->handle((int)$id,
                     (int)$this->request->getAttribute('identity')->getIdentifier(), 'items', $this->request->getData('items'));
                 $this->Flash->success('Apontamento incluído na O.S. existente. O PCM verá a nova atividade na fila.');
                 return $this->redirect(['action' => 'view', $id]);
-            } catch (\InvalidArgumentException | \Cake\Http\Exception\ConflictException $e) {
+            } catch (\InvalidArgumentException | \Cake\Http\Exception\ConflictException | \App\Service\EmployeesUnavailableException $e) {
                 $this->Flash->error($e->getMessage());
             } catch (PersistenceFailedException | \PDOException $e) {
                 $this->Flash->error('Não foi possível salvar o apontamento. Tente novamente.');
@@ -127,20 +127,20 @@ class RequestsController extends AppController
         return null;
     }
 
-    public function items(string $id): mixed { return $this->execute($id, 'items', $this->request->getData('items')); }
+    public function items(string $id, \App\Service\EmployeesLookupInterface $employees): mixed { return $this->execute($id, 'items', $this->request->getData('items'), $employees); }
     public function ongoing(string $id): mixed { return $this->execute($id, 'ongoing'); }
     public function complete(string $id): mixed { return $this->execute($id, 'complete'); }
 
-    private function execute(string $id, string $action, mixed $data = null): mixed
+    private function execute(string $id, string $action, mixed $data = null, ?\App\Service\EmployeesLookupInterface $employees = null): mixed
     {
         $this->request->allowMethod(['post']);
         try {
-            (new \App\Service\RequestExecutionService())->handle((int)$id, (int)$this->request->getAttribute('identity')->getIdentifier(), $action, $data);
+            (new \App\Service\RequestExecutionService($employees))->handle((int)$id, (int)$this->request->getAttribute('identity')->getIdentifier(), $action, $data);
             $this->Flash->success(match ($action) {
                 'items' => 'Apontamentos registrados.', 'ongoing' => 'Serviço mantido em andamento.',
                 'complete' => 'Serviço concluído. O PCM recebeu o pedido de encerramento.',
             });
-        } catch (\InvalidArgumentException | \Cake\Http\Exception\ConflictException $e) {
+        } catch (\InvalidArgumentException | \Cake\Http\Exception\ConflictException | \App\Service\EmployeesUnavailableException $e) {
             $this->Flash->error($e->getMessage());
             if ($action === 'items') {
                 $this->view($id);
