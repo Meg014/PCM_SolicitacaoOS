@@ -33,6 +33,7 @@ class ServiceRequest extends Entity
 
     protected array $_accessible = [
         'sector_id' => true, 'asset_code' => true, 'asset_branch' => true,
-        'maintenance_type' => true, 'description' => true, 'unit' => true, 'flow' => true, 'os_disposition' => true,
+        'maintenance_type' => true, 'description' => true, 'service_action_id' => true, 'service_component_id' => true, 'service_action_name' => true, 'service_component_name' => true, 'service_id' => true, 'service_name' => true,
+        'unit' => true, 'flow' => true, 'os_disposition' => true,
     ];
 }

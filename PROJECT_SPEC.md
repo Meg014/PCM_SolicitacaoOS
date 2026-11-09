@@ -23,7 +23,7 @@ Campos da solicitação:
 - bem/equipamento selecionado por autocomplete a partir do TOTVS;
 - setor selecionado por autocomplete a partir do cadastro interno;
 - tipo de manutenção;
-- descrição principal/problema;
+- ação e item/componente obrigatórios, com descrição final montada no servidor;
 - prioridade opcional;
 - anexos/fotos opcionais;
 - data/hora automática;
@@ -61,11 +61,13 @@ Campos mínimos:
 Na solicitação, o usuário pesquisa e seleciona apenas setores ativos.
 
 ## 7. Apontamentos
-Uma solicitação pode ter vários apontamentos, exibidos em grade compacta: Funcionário, Data, Hora início, Hora fim, Serviço realizado e Ações (+/−). No celular a linha se reorganiza sem card individual.
+Uma solicitação pode ter vários apontamentos, exibidos em grade compacta: Funcionário, Data, Hora início, Hora fim, Serviço realizado (texto livre) e Ações (+/−). No celular a linha se reorganiza sem card individual.
 
 Funcionário é selecionado por nome/matrícula no TOTVS, somente nas funções locais ativas e situações vazio/espaço ou F. Seleção revalidada ao salvar; matrícula, nome, código e descrição da função ficam em snapshot local e na auditoria. Não importar funcionários. Usar exclusivamente RA_MAT, RA_NOME, RA_CODFUNC e RA_SITFOLH.
 
 Apontamento inicial vazio é opcional conforme o fluxo vigente. Qualquer linha adicionada/preenchida exige funcionário, data, início, fim e serviço. Até 50 linhas, com ordem, autoria e data de registro; preservar apontamentos anteriores e os fluxos homologados.
+
+Ações de serviço e Itens/Componentes são cadastros locais administrados apenas por ADMIN_PCM. Somente a descrição da nova solicitação exige ação e componente ativos; os apontamentos mantêm Serviço realizado como texto livre obrigatório, sem vínculo obrigatório com esses cadastros; description e os nomes/IDs usados ficam em snapshot histórico, sem reescrever registros antigos ao alterar os cadastros. Exemplo: Soldar + Chapa → Soldar chapa; Limpar + Geral → Limpeza geral.
 
 ## 8. Status
 

@@ -10,7 +10,7 @@ use Cake\TestSuite\TestCase;
 class SyncTotvsOrdersCommandTest extends TestCase
 {
     use ConsoleIntegrationTestTrait;
-    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits'];
+    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.Services', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits'];
     public function testCommandUsesFakeAndDoesNotConsultOpeningOnlyOrUnlinkedOrders(): void
     {
         $fake = $this->createMock(OrdersLookupInterface::class); $fake->expects($this->never())->method('batch');

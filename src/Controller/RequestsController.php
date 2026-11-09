@@ -40,6 +40,7 @@ class RequestsController extends AppController
         }
         $types = MaintenanceType::options();
         $sectors = $this->fetchTable('Sectors')->find('list')->where(['active' => true])->orderBy(['name' => 'ASC'])->toArray();
+        $this->set(\App\Service\ServiceSelection::options());
         $this->set(compact('request', 'types', 'sectors'));
 
         return null;

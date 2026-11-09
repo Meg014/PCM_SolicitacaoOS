@@ -15,7 +15,7 @@ class HomologationTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.UserDepartments', 'app.Users', 'app.Sectors', 'app.RegistrationAudits',
+    protected array $fixtures = ['app.UserDepartments', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits',
         'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
 
     public function setUp(): void
@@ -34,14 +34,14 @@ class HomologationTest extends TestCase
     }
     private function data(): array
     {
-        return ['unit' => 'USINA', 'asset_code' => 'BEM01', 'asset_branch' => '01', 'sector_id' => 1,
-            'maintenance_type' => 'CORRETIVA', 'description' => 'Reparar bomba', 'os_disposition' => 'MANTER_ABERTA',
+        return ['unit' => 'USINA', 'asset_code' => 'BEM01', 'asset_branch' => '01', 'sector_id' => 1, 'service_component_id' => 1, 'service_action_id' => 1,
+            'maintenance_type' => 'CORRETIVA', 'os_disposition' => 'MANTER_ABERTA',
             'confirm_existing' => '1', 'items' => []];
     }
     private function item(): array
     {
         return ['employee_registration' => 'Executante externo', 'service_date' => '2026-10-13',
-            'start_time' => '08:00', 'end_time' => '09:00', 'description' => 'Troca de vedação'];
+            'start_time' => '08:00', 'end_time' => '09:00', 'description' => 'Serviço realizado no equipamento'];
     }
     private function track(int $id = 1): void
     {
@@ -56,7 +56,7 @@ class HomologationTest extends TestCase
     public function testRequiredRequestFieldsMissingEmptyAndInvalidSelections(): void
     {
         $creation = new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees());
-        foreach (['unit', 'asset_code', 'sector_id', 'maintenance_type', 'description', 'os_disposition'] as $field) {
+        foreach (['unit', 'asset_code', 'sector_id', 'maintenance_type', 'service_action_id', 'service_component_id', 'os_disposition'] as $field) {
             foreach (['missing', 'empty'] as $case) {
                 $data = $this->data();
                 if ($case === 'missing') unset($data[$field]); else $data[$field] = '';
@@ -69,7 +69,7 @@ class HomologationTest extends TestCase
             }
         }
         foreach (['unit' => 'OUTRA', 'asset_code' => 'INVALIDO', 'sector_id' => 999,
-            'maintenance_type' => 'INVALIDO', 'description' => '   ', 'os_disposition' => 'INVALIDO'] as $field => $value) {
+            'maintenance_type' => 'INVALIDO', 'service_component_id' => 999, 'service_action_id' => 999, 'os_disposition' => 'INVALIDO'] as $field => $value) {
             $data = $this->data(); $data[$field] = $value;
             try { $creation->create($data, 3); $this->fail('Seleção inválida aceita: ' . $field); }
             catch (PersistenceFailedException $e) { $this->assertArrayHasKey($field, $e->getEntity()->getErrors()); }
@@ -81,7 +81,7 @@ class HomologationTest extends TestCase
     {
         $this->table('ServiceRequests')->getConnection()->execute("SELECT setval(pg_get_serial_sequence('service_requests', 'id'), (SELECT MAX(id) FROM service_requests))");
         $creation = new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees());
-        foreach ([[], [['employee_registration' => '', 'description' => '', 'service_date' => '', 'start_time' => '', 'end_time' => '']]] as $rows) {
+        foreach ([[], [['employee_registration' => '', 'service_action_id' => '', 'service_date' => '', 'start_time' => '', 'end_time' => '']]] as $rows) {
             $data = $this->data(); $data['items'] = $rows; $request = $creation->create($data, 3);
             $this->assertSame(0, $this->table('RequestItems')->find()->where(['request_id' => $request->id])->count());
         }
@@ -132,7 +132,9 @@ class HomologationTest extends TestCase
     public function testAppendFailuresDoNotUpdateActivityOrCreateRecords(): void
     {
         $this->track(); $this->session(['Auth' => 2]);
-        $this->postForm('/solicitacoes/1/novo-apontamento', ['items' => [['employee_registration' => 'Pessoa']]]);
+        $this->postForm('/solicitacoes/1/novo-apontamento', ['items' => [[
+            'employee_registration' => 'Pessoa', 'description' => 'Serviço realizado no equipamento',
+        ]]]);
         $this->assertResponseOk(); $this->assertResponseContains('Informe a data do serviço');
         $this->assertNull($this->table('ServiceRequests')->get(1)->last_activity_at);
         $this->assertSame(0, $this->table('RequestItems')->find()->count());
@@ -274,7 +276,7 @@ class HomologationTest extends TestCase
         }
         $this->get('/solicitacoes/nova'); $this->assertResponseOk();
         $this->assertResponseNotContains('class="button header-request-shortcut"');
-        foreach (['unit', 'maintenance_type', 'description', 'os_disposition', 'asset_label', 'sector_id'] as $field) {
+        foreach (['unit', 'maintenance_type', 'service_action_id', 'service_component_id', 'os_disposition', 'asset_label', 'sector_id'] as $field) {
             $this->assertMatchesRegularExpression('/<(?:input|select|textarea)[^>]*name="' . $field . '"[^>]*required/s', (string)$this->_response->getBody());
         }
     }

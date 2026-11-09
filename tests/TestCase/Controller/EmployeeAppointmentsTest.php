@@ -16,7 +16,7 @@ class EmployeeAppointmentsTest extends TestCase
     use IntegrationTestTrait;
 
     protected array $fixtures = ['app.Users', 'app.Sectors', 'app.RegistrationAudits', 'app.ServiceRequests',
-        'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments', 'app.AuthorizedFunctions'];
+        'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments', 'app.AuthorizedFunctions'];
     private EmployeesLookupInterface $employees;
 
     public function setUp(): void
@@ -46,7 +46,8 @@ class EmployeeAppointmentsTest extends TestCase
     private function row(): array
     {
         return ['employee_registration' => '006783', 'employee_label' => '006783 - ABADIO - Mecânico',
-            'service_date' => '2026-11-03', 'start_time' => '08:00', 'end_time' => '09:30', 'description' => 'Revisão'];
+            'service_date' => '2026-11-03', 'start_time' => '08:00', 'end_time' => '09:30',
+            'description' => 'Serviço realizado no equipamento'];
     }
 
     private function postRows(array $rows): void

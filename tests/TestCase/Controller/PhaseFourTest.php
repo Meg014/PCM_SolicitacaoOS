@@ -20,7 +20,7 @@ class PhaseFourTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
+    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
     private string $storage;
     private mixed $originalPath;
 
@@ -66,8 +66,8 @@ class PhaseFourTest extends TestCase
     private function data(array $photos): array
     {
         return ['flow' => 'ACOMPANHAMENTO', 'os_disposition' => 'MANTER_ABERTA', 'confirm_existing' => '1', 'unit' => 'USINA', 'asset_code' => 'BEM01', 'asset_branch' => '01', 'sector_id' => 1,
-            'maintenance_type' => MaintenanceType::CORRETIVA->value, 'description' => 'Pedido com fotos',
-            'items' => [['description' => 'Serviço', 'employee_registration' => 'Equipe externa', 'service_date' => '2026-10-07', 'start_time' => '08:00', 'end_time' => '09:00']], 'photos' => $photos];
+            'maintenance_type' => MaintenanceType::CORRETIVA->value, 'service_component_id' => 1, 'service_action_id' => 1,
+            'items' => [['description' => 'Serviço realizado no equipamento', 'employee_registration' => 'Equipe externa', 'service_date' => '2026-10-07', 'start_time' => '08:00', 'end_time' => '09:00']], 'photos' => $photos];
     }
 
     public function testUploadDuringCreationStoresPhotosAndAudit(): void

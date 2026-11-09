@@ -16,7 +16,7 @@ class RequestsControllerTest extends TestCase
     use IntegrationTestTrait;
 
     protected array $fixtures = [
-        'app.Users', 'app.Sectors', 'app.RegistrationAudits',
+        'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits',
         'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits',
     ];
 
@@ -48,7 +48,7 @@ class RequestsControllerTest extends TestCase
             'unit' => 'USINA', 'asset_code' => 'BEM01', 'asset_branch' => '01', 'asset_label' => 'Bomba de água',
             'sector_id' => 1, 'sector_label' => 'Manutenção',
             'maintenance_type' => MaintenanceType::CORRETIVA->value,
-            'description' => 'Vazamento na bomba',
+            'service_component_id' => 1, 'service_action_id' => 1,
             'items' => [['description' => 'Trocar vedação', 'employee_registration' => 'José externo', 'service_date' => '2026-10-06', 'start_time' => '08:00', 'end_time' => '09:00'], ['description' => 'Verificar tubulação', 'employee_registration' => 'Maria externa', 'service_date' => '2026-10-07', 'start_time' => '10:00', 'end_time' => '11:30']],
         ];
     }
@@ -95,6 +95,9 @@ class RequestsControllerTest extends TestCase
         $this->assertSame(3, $request->user_id);
         $this->assertSame(RequestStatus::AGUARDANDO_PCM->value, $request->status);
         $this->assertSame('Bomba de água', $request->asset_description);
+        $this->assertSame(1, $request->service_action_id);
+        $this->assertSame('Limpar', $request->service_action_name);
+        $this->assertSame('Limpeza geral', $request->description);
         $this->assertNull($request->totvs_os_number);
         $this->assertMatchesRegularExpression('/^SOL-[0-9]{4}-[0-9]{6,}$/', $request->number);
         $this->assertCount(2, $request->request_items);
@@ -102,6 +105,57 @@ class RequestsControllerTest extends TestCase
         $this->assertCount(2, $request->request_audits);
         $this->assertSame('REQUEST_CREATED', $request->request_audits[0]->action);
         $this->assertCount(2, $request->request_audits[0]->new_values['items']);
+    }
+
+    public function testServiceSelectorsShowActiveCatalogAndRequireManualDescriptionForOther(): void
+    {
+        $this->session(['Auth' => 3]);
+        $this->get('/solicitacoes/nova');
+        $this->assertResponseOk();
+        $this->assertResponseContains('Selecione a ação');
+        $this->assertResponseContains('Limpar');
+        $this->assertResponseNotContains('>Outro</option>');
+        $this->assertResponseContains('data-service-selection');
+        $this->assertResponseContains('service-selection.js');
+    }
+
+    public function testOtherServiceIsSavedAsManualSnapshotAndInactiveCatalogChoicesAreRejected(): void
+    {
+        $this->session(['Auth' => 3]);
+        $data = array_replace($this->payload(), [
+            'service_action_id' => 1, 'service_component_id' => 1,
+            'items' => [],
+        ]);
+        $this->submit($data);
+        $this->assertResponseCode(302);
+        $request = $this->requests()->find()->orderBy(['id' => 'DESC'])->firstOrFail();
+        $this->assertSame(1, $request->service_action_id);
+        $this->assertSame('Limpar', $request->service_action_name);
+        $this->assertSame('Limpeza geral', $request->description);
+
+        TableRegistry::getTableLocator()->get('ServiceActions')->updateAll(['active' => false], ['id' => 1]);
+        $this->assertSame('Limpeza geral', $this->requests()->get($request->id)->description);
+        $this->get('/solicitacoes/nova');
+        $this->assertResponseOk();
+        $this->assertResponseNotContains('<option value="1">Limpar</option>');
+        $this->submit($this->payload());
+        $this->assertResponseOk();
+        $this->assertResponseContains('Selecione uma opção ativa de ação');
+        $this->assertSame(3, $this->requests()->find()->count());
+    }
+
+    public function testAppointmentAcceptsFreeTextWithoutServiceCatalogSelection(): void
+    {
+        $this->session(['Auth' => 3]);
+        $data = $this->payload();
+        $data['items'][0]['description'] = 'Solda reforçada na chapa, com acabamento manual.';
+        $data['items'][0]['service_action_id'] = 999;
+        $this->submit($data);
+        $this->assertResponseCode(302);
+        $item = TableRegistry::getTableLocator()->get('RequestItems')->find()->firstOrFail();
+        $this->assertNull($item->service_action_id);
+        $this->assertNull($item->service_component_id);
+        $this->assertSame('Solda reforçada na chapa, com acabamento manual.', $item->description);
     }
 
     public function testInvalidAssetAndWrongBranchAreRejected(): void
@@ -157,7 +211,7 @@ class RequestsControllerTest extends TestCase
     public function testInvalidItemsTypeAndBlankDescriptionAreRejected(): void
     {
         $this->session(['Auth' => 3]);
-        foreach ([['items' => 'inválido'], ['items' => [['description' => ' ', 'employee_registration' => 'José']]], ['maintenance_type' => 'INVALID'], ['description' => ' '], ['items' => array_fill(0, 51, ['description' => 'Item'])]] as $change) {
+        foreach ([['items' => 'inválido'], ['items' => [['description' => '', 'employee_registration' => 'José']]], ['maintenance_type' => 'INVALID'], ['service_action_id' => ''], ['service_component_id' => ''], ['items' => array_fill(0, 51, ['description' => 'Serviço'])]] as $change) {
             $this->submit(array_replace($this->payload(), $change));
             $this->assertResponseOk();
         }
@@ -173,7 +227,7 @@ class RequestsControllerTest extends TestCase
         $this->submit($this->payload());
         $this->assertResponseOk();
         $this->assertResponseContains('Não foi possível consultar os equipamentos');
-        $this->assertResponseContains('Vazamento na bomba');
+        $this->assertResponseContains('Limpar');
         $this->assertSame(2, $this->requests()->find()->count());
     }
 
@@ -384,7 +438,7 @@ class RequestsControllerTest extends TestCase
         $this->session(['Auth' => 3]); $this->get('/solicitacoes/nova'); $this->assertResponseOk();
         $body = (string)$this->_response->getBody(); $previous = -1;
         foreach (['name="unit"', 'name="asset_label"', 'name="sector_id"', 'name="maintenance_type"',
-            'name="description"', 'name="os_disposition"', 'id="execution-initial"', 'id="photos"', '>Enviar solicitação<'] as $field) {
+            'name="service_action_id"', 'name="os_disposition"', 'id="execution-initial"', 'id="photos"', '>Enviar solicitação<'] as $field) {
             $position = strpos($body, $field);
             $this->assertNotFalse($position, $field);
             $this->assertGreaterThan($previous, $position, $field); $previous = $position;

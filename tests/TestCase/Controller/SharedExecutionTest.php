@@ -18,7 +18,7 @@ class SharedExecutionTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
+    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
 
     public function setUp(): void
     {
@@ -39,7 +39,7 @@ class SharedExecutionTest extends TestCase
     private function data(string $flow = 'ACOMPANHAMENTO'): array
     {
         return ['os_disposition' => $flow === 'SOMENTE_ABERTURA' ? 'SOMENTE_ABERTURA' : 'MANTER_ABERTA', 'flow' => $flow, 'unit' => 'USINA', 'asset_code' => 'BEM02', 'asset_branch' => '01',
-            'sector_id' => 1, 'maintenance_type' => 'CORRETIVA', 'description' => 'Motor com vibração', 'items' => []];
+            'sector_id' => 1, 'maintenance_type' => 'CORRETIVA', 'service_component_id' => 1, 'service_action_id' => 1, 'items' => []];
     }
 
     private function request(): mixed { return TableRegistry::getTableLocator()->get('ServiceRequests')->get(1); }
@@ -59,7 +59,8 @@ class SharedExecutionTest extends TestCase
 
     private function item(string $executor = 'Carlos', string $date = '2026-10-07'): array
     {
-        return ['employee_registration' => $executor, 'service_date' => $date, 'start_time' => '08:00', 'end_time' => '09:30', 'description' => 'Revisão do motor'];
+        return ['employee_registration' => $executor, 'service_date' => $date, 'start_time' => '08:00', 'end_time' => '09:30',
+            'description' => 'Serviço realizado no equipamento'];
     }
 
     private function postAction(string $action, array $data = []): void

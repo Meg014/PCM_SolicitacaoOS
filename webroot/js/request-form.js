@@ -189,12 +189,13 @@ if (flow) {
     const updateItems = () => {
         const choice = flow.querySelector('input:checked');
         fieldset.hidden = !choice || choice.value === 'SOMENTE_ABERTURA';
-        fieldset.querySelectorAll('input, textarea, button').forEach(field => { field.disabled = fieldset.hidden; });
+        fieldset.querySelectorAll('input, select, textarea, button').forEach(field => { field.disabled = fieldset.hidden; });
         fieldset.querySelectorAll('.request-item').forEach(row => {
-            const fields = [...row.querySelectorAll('input, textarea')];
+            const fields = [...row.querySelectorAll('input, select, textarea')];
             const filled = fields.some(field => field.value.trim() !== '');
             fields.forEach(field => { field.required = !fieldset.hidden && filled; if (!field.required) field.setCustomValidity(''); });
         });
+            if (typeof window.refreshServiceSelection === 'function') window.refreshServiceSelection(fieldset);
     };
     flow.addEventListener('change', updateItems);
     fieldset.addEventListener('input', updateItems);
@@ -262,9 +263,9 @@ document.addEventListener('invalid', event => {
     if (field.value.trim() !== '') return;
     const messages = {unit: 'Selecione a unidade.', asset_label: 'Pesquise e selecione um equipamento da lista.',
         sector_id: 'Selecione a Mão de obra.', maintenance_type: 'Selecione o tipo de manutenção.',
-        description: 'Descreva o serviço ou problema.', os_disposition: 'Escolha como a Ordem de Serviço deve seguir.'};
+        service_action_id: 'Selecione a ação.', service_component_id: 'Selecione o item/componente.', os_disposition: 'Escolha como a Ordem de Serviço deve seguir.'};
     const itemMessages = {employee_label: 'Pesquise e selecione um funcionário.', employee_registration: 'Selecione um funcionário.', service_date: 'Informe a data do serviço.',
-        start_time: 'Informe a hora inicial.', end_time: 'Informe a hora final.', description: 'Descreva este apontamento.'};
+        start_time: 'Informe a hora inicial.', end_time: 'Informe a hora final.', description: 'Descreva o serviço realizado.'};
     const key = field.dataset.itemField || (field.name?.startsWith('items[') ? 'description' : null);
     if (key || messages[field.name]) field.setCustomValidity(key ? itemMessages[key] : messages[field.name]);
 }, true);

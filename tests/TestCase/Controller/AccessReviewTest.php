@@ -12,7 +12,7 @@ class AccessReviewTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.UserDepartments', 'app.Users', 'app.Sectors', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
+    protected array $fixtures = ['app.UserDepartments', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
 
     private function users(): \Cake\ORM\Table
     {

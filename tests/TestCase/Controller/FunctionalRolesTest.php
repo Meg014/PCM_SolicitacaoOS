@@ -13,7 +13,7 @@ class FunctionalRolesTest extends TestCase
     use IntegrationTestTrait;
 
     protected array $fixtures = [
-        'app.UserDepartments', 'app.Users', 'app.Sectors', 'app.RegistrationAudits',
+        'app.UserDepartments', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits',
         'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments',
     ];
 

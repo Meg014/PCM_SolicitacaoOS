@@ -2,7 +2,9 @@
 require 'vendor/autoload.php'; require 'config/bootstrap.php';
 (require 'config/routes.php')(\Cake\Routing\Router::createRouteBuilder('/'));
 $view = new \Cake\View\View(new \Cake\Http\ServerRequest());
+$view->set(\App\Service\ServiceSelection::options());
 $element = $view->element('execution_items');
+$pair = $view->element('service_pair', ['pairData' => ['service_action_id' => 2, 'service_component_id' => 2]]);
 $harness = <<<'JS'
 window.errors=[]; window.addEventListener('error', e=>errors.push(e.message));
 window.fetch=async ()=>({ok:true,redirected:false,json:async()=>({results:[{registration:'006783',name:'ABADIO',function_code:'00005',function_name:'Mecânico',label:'006783 - ABADIO - Mecânico'}]})});
@@ -12,6 +14,10 @@ const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
 (async()=>{
  let checks=0; const check=(ok,msg)=>{if(!ok) throw Error(msg); checks++;};
  try {
+  check(document.querySelector('[data-service-preview]').textContent==='Soldar chapa','request composed preview');
+  const mainPair=document.querySelector('[data-service-selection]');
+  for(const field of mainPair.querySelectorAll('select')) {field.value='1';field.dispatchEvent(new Event('change',{bubbles:true}));}
+  check(mainPair.querySelector('[data-service-preview]').textContent==='Limpeza geral','general cleaning preview');
   const root=document.getElementById('request-items'); const add=document.getElementById('add-item');
   check(!root.querySelector('[data-search]').required,'initial optional');
   add.click(); check(root.children.length===2,'add');
@@ -28,8 +34,11 @@ const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
   row.querySelector('[data-item-field=service_date]').value='2026-11-03';
   row.querySelector('[data-item-field=start_time]').value='08:00';
   row.querySelector('[data-item-field=end_time]').value='09:00';
-  row.querySelector('textarea').value='Revisão do motor';
-  row.querySelector('textarea').dispatchEvent(new Event('input',{bubbles:true}));
+  const serviceText=row.querySelector('textarea');
+  serviceText.value='Solda reforçada na chapa com acabamento manual.';
+  serviceText.dispatchEvent(new Event('input',{bubbles:true}));
+  check(row.querySelectorAll('select').length===0,'no catalog fields in appointment');
+  check(serviceText.required && serviceText.maxLength===2000,'free text required with existing limit');
   check(document.querySelector('form').checkValidity(),'complete row valid');
   root.firstElementChild.querySelector('.remove-item').click();
   check(root.firstElementChild.querySelector('[data-selected]').name==='items[0][employee_registration]','renumber');
@@ -45,7 +54,7 @@ const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
  } catch(error) { document.getElementById('result').textContent='FAIL '+error.message; }
 })();
 JS;
-$html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'.file_get_contents('webroot/css/app.css').'</style></head><body><main class="container"><section class="request-form execution-form"><form><fieldset id="os-disposition"><input type="radio" name="os_disposition" value="MANTER_ABERTA" checked></fieldset><fieldset id="execution-initial">'.$element.'</fieldset></form></section><pre id="result">PENDING</pre></main><script>'.$harness.'</script><script>'.file_get_contents('webroot/js/request-form.js').'</script><script>'.file_get_contents('webroot/js/employee-autocomplete.js').'</script><script>'.$checks.'</script></body></html>';
+$html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'.file_get_contents('webroot/css/app.css').'</style></head><body><main class="container"><section class="request-form execution-form"><form>'.$pair.'<fieldset id="os-disposition"><input type="radio" name="os_disposition" value="MANTER_ABERTA" checked></fieldset><fieldset id="execution-initial">'.$element.'</fieldset></form></section><pre id="result">PENDING</pre></main><script>'.$harness.'</script><script>'.file_get_contents('webroot/js/request-form.js').'</script><script>'.file_get_contents('webroot/js/employee-autocomplete.js').'</script><script>'.file_get_contents('webroot/js/service-selection.js').'</script><script>'.$checks.'</script></body></html>';
 file_put_contents('tmp/employee-browser.html',$html);
 foreach ([360, 768, 1366] as $width) {
     $frame = '<!doctype html><html><head><meta charset="utf-8"></head><body>'

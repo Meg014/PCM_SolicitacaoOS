@@ -224,3 +224,10 @@ nav a, .pagination a, td a { min-height: 44px; display: inline-flex; align-items
     .execution-saved .employee-field { grid-column: 1 / -1; }
     .execution-saved > div:last-child { display: none; }
 }
+
+.service-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; min-width: 0; }
+.service-pair output { grid-column: 1 / -1; }
+.execution-row .service-pair { min-width: 0; }
+.execution-row { grid-template-columns: minmax(210px, 2fr) minmax(140px, 1fr) minmax(105px, .7fr) minmax(105px, .7fr) minmax(200px, 2fr) 48px; }
+@media (max-width: 1100px) { .execution-row { grid-template-columns: minmax(190px, 2fr) minmax(145px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr); } }
+@media (max-width: 650px) { .execution-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; } .service-pair { grid-template-columns: minmax(0, 1fr); } .execution-row .service-pair { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); } }

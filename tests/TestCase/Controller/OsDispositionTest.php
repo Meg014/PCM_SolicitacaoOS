@@ -17,7 +17,7 @@ class OsDispositionTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
+    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
 
     public function setUp(): void
     {
@@ -46,7 +46,7 @@ class OsDispositionTest extends TestCase
     {
         return ['os_disposition' => $choice->value, 'flow' => 'FORJADO', 'unit' => 'USINA', 'sector_id' => 1,
             'asset_code' => 'BEM02', 'asset_branch' => '01', 'maintenance_type' => 'CORRETIVA',
-            'description' => 'Revisar motor', 'items' => [], 'confirm_existing' => '1'];
+            'service_component_id' => 1, 'service_action_id' => 1, 'items' => [], 'confirm_existing' => '1'];
     }
 
     public function testThreeChoicesDetermineLinkStatusWithoutDeducingFromItems(): void
@@ -89,7 +89,8 @@ class OsDispositionTest extends TestCase
         $request = (new RequestCreationService($this->assets(), new \App\Test\Support\FakeEmployees()))->create($this->data(OsDisposition::MANTER_ABERTA), 3);
         (new RequestHandlingService())->handle($request->id, 1, 'link', '123');
         (new RequestExecutionService(new \App\Test\Support\FakeEmployees()))->handle($request->id, 2, 'items', [[
-            'employee_registration' => 'Outro turno', 'service_date' => '2026-10-08', 'start_time' => '08:00', 'end_time' => '09:00', 'description' => 'Revisão',
+            'employee_registration' => 'Outro turno', 'service_date' => '2026-10-08', 'start_time' => '08:00', 'end_time' => '09:00',
+            'description' => 'Serviço realizado no equipamento',
         ]]);
         (new RequestExecutionService(new \App\Test\Support\FakeEmployees()))->handle($request->id, 2, 'complete');
         $saved = TableRegistry::getTableLocator()->get('ServiceRequests')->get($request->id);

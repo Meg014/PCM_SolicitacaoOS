@@ -7,7 +7,11 @@ use Cake\ORM\TableRegistry;
 
 final class RequestItemPreparation
 {
-    public static function prepare(mixed $rawItems, int $minimum = 0, ?EmployeesLookupInterface $employees = null): array
+    public static function prepare(
+        mixed $rawItems,
+        int $minimum = 0,
+        ?EmployeesLookupInterface $employees = null,
+    ): array
     {
         if (!is_array($rawItems) || count($rawItems) < $minimum || count($rawItems) > 50) {
             throw new \InvalidArgumentException($minimum ? 'Inclua de 1 a 50 apontamentos.' : 'Inclua no máximo 50 apontamentos.');
@@ -15,7 +19,9 @@ final class RequestItemPreparation
         $table = TableRegistry::getTableLocator()->get('RequestItems');
         $items = [];
         foreach (array_values($rawItems) as $index => $raw) {
-            $item = $table->newEntity(is_array($raw) ? array_intersect_key($raw, array_flip(['description', 'employee_registration', 'service_date', 'start_time', 'end_time'])) : []);
+            $item = $table->newEntity(is_array($raw) ? array_intersect_key($raw, array_flip([
+                'description', 'employee_registration', 'service_date', 'start_time', 'end_time',
+            ])) : []);
             if ($item->hasErrors()) {
                 $messages = [];
                 $errors = $item->getErrors();
@@ -43,7 +49,10 @@ final class RequestItemPreparation
 
     public static function snapshot($item): array
     {
-        return ['description' => $item->description, 'position' => $item->position, 'executor' => $item->executor,
+        return ['service_action_id' => $item->service_action_id, 'service_action_name' => $item->service_action_name,
+            'service_component_id' => $item->service_component_id, 'service_component_name' => $item->service_component_name,
+            'description' => $item->description, 'service_id' => $item->service_id, 'service_name' => $item->service_name,
+            'position' => $item->position, 'executor' => $item->executor,
             'started_at' => $item->started_at->format(DATE_ATOM), 'ended_at' => $item->ended_at->format(DATE_ATOM),
             'recorded_by' => $item->recorded_by,
             'employee_registration' => $item->employee_registration, 'employee_name' => $item->employee_name,

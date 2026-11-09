@@ -13,7 +13,7 @@ use Cake\TestSuite\TestCase;
 class TotvsAutomationTest extends TestCase
 {
     use IntegrationTestTrait;
-    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.RegistrationAudits', 'app.ServiceRequests',
+    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits', 'app.ServiceRequests',
         'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
     private function table(string $alias): \Cake\ORM\Table { return TableRegistry::getTableLocator()->get($alias); }
     private function tracking(string $disposition = 'MANTER_ABERTA'): void

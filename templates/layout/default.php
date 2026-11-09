@@ -48,7 +48,9 @@ $role = $identity ? $identity->get('role') : null;
                 <?php if ($role === \App\Domain\Enum\UserRole::ADMIN_PCM->value): ?>
                 <details class="admin-menu"><summary>Administração</summary><div>
                     <?= $this->Html->link('Usuários', ['controller' => 'Users', 'action' => 'index']) ?>
-                    <?= $this->Html->link('Mãos de obra', ['controller' => 'Sectors', 'action' => 'index']) ?><?= $this->Html->link('Setores dos usuários', ['controller' => 'UserDepartments', 'action' => 'index']) ?>
+                    <?= $this->Html->link('Mãos de obra', ['controller' => 'Sectors', 'action' => 'index']) ?>
+                    <?= $this->Html->link('Ações de serviço', ['controller' => 'ServiceActions', 'action' => 'index']) ?><?= $this->Html->link('Itens/Componentes de serviço', ['controller' => 'ServiceComponents', 'action' => 'index']) ?>
+                    <?= $this->Html->link('Setores dos usuários', ['controller' => 'UserDepartments', 'action' => 'index']) ?>
                 </div></details>
                 <?php endif; ?>
                 <?= $this->Html->link('Meu perfil', ['controller' => 'Profile', 'action' => 'index']) ?>

@@ -24,9 +24,23 @@ class RequestCreationService
         // Uma única escolha no formulário; flow permanece apenas para compatibilidade interna.
         $choice = is_string($data['os_disposition'] ?? null) ? \App\Domain\Enum\OsDisposition::tryFrom($data['os_disposition']) : null;
         $data['flow'] = $choice === \App\Domain\Enum\OsDisposition::SOMENTE_ABERTURA ? RequestFlow::SOMENTE_ABERTURA->value : RequestFlow::ACOMPANHAMENTO->value;
+        $serviceError = null;
+        $serviceErrorField = 'service_action_id';
+        try {
+            $service = ServiceSelection::resolve($data['service_action_id'] ?? null, $data['service_component_id'] ?? null);
+        } catch (\InvalidArgumentException $e) {
+            $service = ['description' => ''];
+            $serviceError = $e->getMessage();
+            $serviceErrorField = $e->getCode() === 2 ? 'service_component_id' : 'service_action_id';
+        }
         $entity = $requests->newEntity(array_intersect_key($data, array_flip([
-            'sector_id', 'asset_code', 'asset_branch', 'maintenance_type', 'description', 'unit', 'flow', 'os_disposition',
+            'sector_id', 'asset_code', 'asset_branch', 'maintenance_type', 'unit', 'flow', 'os_disposition',
         ])));
+        $entity->patch($service);
+        if ($service['description'] === '') {
+            $entity->setError($serviceErrorField, $serviceError ?? 'Selecione a ação e o item/componente.');
+            throw new PersistenceFailedException($entity, 'Selecione um serviço válido.');
+        }
         try {
             $raw = $data['items'] ?? [];
             if (is_array($raw)) {
@@ -68,6 +82,13 @@ class RequestCreationService
                     $entity->setError('sector_id', 'Selecione uma mão de obra ativa da lista.');
                     throw new PersistenceFailedException($entity, 'Selecione uma mão de obra válida.');
                 }
+                try {
+                    $service = ServiceSelection::resolve($data['service_action_id'] ?? null, $data['service_component_id'] ?? null, true);
+                } catch (\InvalidArgumentException $e) {
+                    $entity->setError($e->getCode() === 2 ? 'service_component_id' : 'service_action_id', $e->getMessage());
+                    throw new PersistenceFailedException($entity, 'Selecione um serviço válido.');
+                }
+                $entity->patch($service);
                 if (!$locator->get('Users')->exists(['id' => $userId, 'active' => true])) {
                     throw new \Cake\Http\Exception\ForbiddenException('Sua conta não está ativa. Entre novamente.');
                 }
@@ -90,7 +111,9 @@ class RequestCreationService
                     'new_values' => [
                         'number' => $entity->number, 'user_id' => $userId, 'sector_id' => $entity->sector_id,
                         'asset_code' => $asset['code'], 'asset_branch' => $asset['branch'], 'asset_description' => $asset['description'],
-                        'maintenance_type' => $entity->maintenance_type, 'description' => $entity->description, 'unit' => $entity->unit,
+                        'maintenance_type' => $entity->maintenance_type, 'description' => $entity->description,
+                        'service_action_id' => $entity->service_action_id, 'service_action_name' => $entity->service_action_name,
+                        'service_component_id' => $entity->service_component_id, 'service_component_name' => $entity->service_component_name, 'unit' => $entity->unit,
                         'status' => $entity->status, 'flow' => $entity->flow, 'os_disposition' => $entity->os_disposition,
                         'items' => array_map([RequestItemPreparation::class, 'snapshot'], $items),
                     ], 'created_at' => $now,
