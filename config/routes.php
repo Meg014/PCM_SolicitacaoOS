@@ -34,12 +34,12 @@ return function (RouteBuilder $routes): void {
         $builder->connect('/solicitacoes/nova', ['controller' => 'Requests', 'action' => 'add'])->setMethods(['GET', 'POST']);
         $builder->connect('/solicitacoes/{id}', ['controller' => 'Requests', 'action' => 'view'])
             ->setPatterns(['id' => '[0-9]+'])->setPass(['id'])->setMethods(['GET']);
-        foreach (['usuarios' => 'Users', 'setores' => 'Sectors', 'setores-usuarios' => 'UserDepartments', 'servicos' => 'Services', 'acoes-servico' => 'ServiceActions', 'componentes-servico' => 'ServiceComponents'] as $path => $controller) {
+        foreach (['usuarios' => 'Users', 'setores' => 'Sectors', 'setores-usuarios' => 'UserDepartments', 'servicos' => 'Services', 'acoes-servico' => 'ServiceActions', 'componentes-servico' => 'ServiceComponents', 'tipos-manutencao' => 'MaintenanceTypes'] as $path => $controller) {
             $builder->connect('/' . $path, ['controller' => $controller, 'action' => 'index'])->setMethods(['GET']);
             $builder->connect('/' . $path . '/novo', ['controller' => $controller, 'action' => 'add'])->setMethods(['GET', 'POST']);
             $builder->connect('/' . $path . '/{id}/editar', ['controller' => $controller, 'action' => 'edit'])
                 ->setPatterns(['id' => '[0-9]+'])->setPass(['id'])->setMethods(['GET', 'POST', 'PUT', 'PATCH']);
-            if (in_array($controller, ['Services', 'ServiceActions', 'ServiceComponents'], true)) {
+            if (in_array($controller, ['Services', 'ServiceActions', 'ServiceComponents', 'MaintenanceTypes'], true)) {
                 $builder->connect('/' . $path . '/{id}/situacao', ['controller' => $controller, 'action' => 'toggle'])
                     ->setPatterns(['id' => '[0-9]+'])->setPass(['id'])->setMethods(['POST']);
             }

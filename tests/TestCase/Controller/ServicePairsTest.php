@@ -15,7 +15,7 @@ class ServicePairsTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents',
+    protected array $fixtures = ['app.MaintenanceTypes', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents',
         'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
 
     public function testDescriptionsAreComposedFromBothActiveOptions(): void
@@ -34,7 +34,7 @@ class ServicePairsTest extends TestCase
 
     public function testBothCatalogsAreAdminOnlyAndHaveAuditedActivationWithoutDelete(): void
     {
-        foreach (['acoes-servico' => 'ServiceActions', 'componentes-servico' => 'ServiceComponents'] as $path => $alias) {
+        foreach (['acoes-servico' => 'ServiceActions', 'componentes-servico' => 'ServiceComponents', 'tipos-manutencao' => 'MaintenanceTypes'] as $path => $alias) {
             foreach ([2,3] as $user) {
                 $this->session(['Auth' => $user]);
                 $this->get('/' . $path); $this->assertResponseCode(403);
@@ -76,7 +76,7 @@ class ServicePairsTest extends TestCase
         $row=['service_action_id'=>2,'service_component_id'=>2,'employee_registration'=>'006783',
             'service_date'=>'2026-11-04','start_time'=>'08:00','end_time'=>'09:00','description'=>'Serviço livre realizado na chapa.', 'service_action_name'=>'Forjado'];
         $request=(new RequestCreationService($assets,new \App\Test\Support\FakeEmployees()))->create([
-            'asset_code'=>'NOVO','asset_branch'=>'01','sector_id'=>1,'unit'=>'USINA','maintenance_type'=>'CORRETIVA',
+            'asset_label'=>'Bem de teste (NOVO)','asset_code'=>'NOVO','asset_branch'=>'01','sector_id'=>1,'unit'=>'USINA','maintenance_type'=>'CORRETIVA',
             'os_disposition'=>'MANTER_ABERTA','service_action_id'=>2,'service_component_id'=>2,
             'description'=>'Forjado','service_component_name'=>'Forjado','items'=>[$row,$row]],3);
         $request=$requests->get($request->id);

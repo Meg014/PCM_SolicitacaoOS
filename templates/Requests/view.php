@@ -15,7 +15,7 @@
     <dt>Tempo de atendimento</dt><dd><?= h($request->attendanceDuration()) ?></dd>
     <dt>Equipamento</dt><dd><?= h($request->asset_description) ?> (<?= h($request->asset_code) ?>)</dd>
     <dt>Mão de obra</dt><dd><?= h($request->sector->name) ?></dd>
-    <dt>Tipo de manutenção</dt><dd><?= h(\App\Domain\Enum\MaintenanceType::from($request->maintenance_type)->label()) ?></dd>
+    <dt>Tipo de manutenção</dt><dd><?= h(\App\Service\MaintenanceTypeCatalog::label($request->maintenance_type)) ?></dd>
     <?php if ($request->totvs_os_number): ?><dt>O.S. TOTVS</dt><dd><?= h($request->totvs_os_number) ?></dd><?php endif; ?>
     <?php if ($request->os_linked_at): ?><dt>O.S. vinculada por</dt><dd><?= h($request->linked_user->name) ?> · <?= h($request->os_linked_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')) ?></dd><?php endif; ?>
     <?php if ($request->cancelled_at): ?><dt>Cancelada por</dt><dd><?= h($request->cancelled_user->name) ?> · <?= h($request->cancelled_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')) ?></dd><dt>Motivo</dt><dd class="preserve-lines"><?= h($request->cancellation_reason) ?></dd><?php endif; ?>

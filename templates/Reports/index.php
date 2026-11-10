@@ -7,7 +7,7 @@
 <?= $this->Form->control('start', ['label' => 'Data inicial', 'type' => 'date', 'value' => $value('start')]) ?>
 <?= $this->Form->control('end', ['label' => 'Data final', 'type' => 'date', 'value' => $value('end')]) ?>
 <?= $this->Form->control('status', ['label' => 'Situação', 'options' => $statuses, 'empty' => 'Todas', 'value' => $value('status')]) ?>
-<?= $this->Form->control('maintenance_type', ['label' => 'Tipo de manutenção', 'options' => \App\Domain\Enum\MaintenanceType::options(), 'empty' => 'Todos', 'value' => $value('maintenance_type')]) ?>
+<?= $this->Form->control('maintenance_type', ['label' => 'Tipo de manutenção', 'options' => \App\Service\MaintenanceTypeCatalog::options(), 'empty' => 'Todos', 'value' => $value('maintenance_type')]) ?>
 <?= $this->Form->control('flow', ['label' => 'Tipo de solicitação', 'options' => \App\Domain\Enum\RequestFlow::options(), 'empty' => 'Todos', 'value' => $value('flow')]) ?>
 <?= $this->Form->control('sector_id', ['label' => 'Mão de obra', 'options' => $sectors, 'empty' => 'Todos', 'value' => $value('sector_id')]) ?>
 <?= $this->Form->control('unit', ['label' => 'Unidade', 'options' => \App\Domain\Enum\RequestUnit::options() + ['UNSPECIFIED' => 'Não informada (anteriores)'], 'empty' => 'Todas', 'value' => $value('unit')]) ?>

@@ -17,7 +17,7 @@
 <section><h2><?= h($title) ?></h2>
 <table><thead><tr><th>Grupo</th><th>Solicitações</th></tr></thead><tbody>
 <?php foreach ($indicators[$key] as $row): ?>
-<?php $label = match ($key) { 'status' => $statuses[$row['category']] ?? '', 'sector' => $sectors[$row['category']] ?? '', 'user' => $users[$row['category']] ?? '', 'type' => \App\Domain\Enum\MaintenanceType::from($row['category'])->label() }; ?>
+<?php $label = match ($key) { 'status' => $statuses[$row['category']] ?? '', 'sector' => $sectors[$row['category']] ?? '', 'user' => $users[$row['category']] ?? '', 'type' => \App\Service\MaintenanceTypeCatalog::label($row['category']) }; ?>
 <tr><td><?= h($label) ?></td><td><?= (int)$row['total'] ?></td></tr>
 <?php endforeach; ?>
 </tbody></table></section>

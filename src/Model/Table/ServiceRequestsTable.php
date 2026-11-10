@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace App\Model\Table;
 
-use App\Domain\Enum\MaintenanceType;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
@@ -36,11 +35,11 @@ class ServiceRequestsTable extends Table
             ->inList('unit', array_column(\App\Domain\Enum\RequestUnit::cases(), 'value'), 'Selecione Usina ou Fábrica.')
             ->requirePresence('sector_id', 'create', 'Selecione uma mão de obra da lista.')->integer('sector_id')
             ->notEmptyString('sector_id', 'Selecione uma mão de obra da lista.')
-            ->requirePresence('asset_code', 'create', 'Selecione um equipamento da lista.')->scalar('asset_code')
-            ->notEmptyString('asset_code', 'Selecione um equipamento da lista.')->maxLength('asset_code', 100)
+            ->requirePresence('asset_code', 'create', 'Selecione um Bem/Equipamento válido da lista.')->scalar('asset_code')
+            ->notEmptyString('asset_code', 'Selecione um Bem/Equipamento válido da lista.')->maxLength('asset_code', 100)
             ->scalar('asset_branch')->allowEmptyString('asset_branch')->maxLength('asset_branch', 100)
             ->requirePresence('maintenance_type', 'create', 'Selecione o tipo de manutenção.')
-            ->notEmptyString('maintenance_type', 'Selecione o tipo de manutenção.')->inList('maintenance_type', array_column(MaintenanceType::cases(), 'value'), 'Selecione o tipo de manutenção.')
+            ->notEmptyString('maintenance_type', 'Selecione o tipo de manutenção.')->scalar('maintenance_type')->maxLength('maintenance_type', 30)
             ->requirePresence('description', 'create', 'Descreva o serviço ou problema.')->scalar('description')
             ->notEmptyString('description', 'Descreva o serviço ou problema.')->maxLength('description', 5000)
             ->add('description', 'notBlank', ['rule' => fn($value) => trim($value) !== '', 'message' => 'Descreva o serviço ou problema.']);

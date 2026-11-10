@@ -42,6 +42,7 @@ function initAutocomplete(group) {
     const branch = group.querySelector('[data-branch]');
     const list = group.querySelector('[role="listbox"]');
     const message = group.querySelector('.lookup-message');
+    let selectedLabel = selected.value ? input.value : '';
     let timer, controller, version = 0, active = -1;
     const close = () => {
         list.hidden = true;
@@ -50,8 +51,12 @@ function initAutocomplete(group) {
         active = -1;
     };
     const choose = item => {
+        clearTimeout(timer);
+        ++version;
+        if (controller) controller.abort();
         const asset = group.dataset.kind === 'asset';
         input.value = asset ? item.description + ' (' + item.code + ')' : item.name;
+        selectedLabel = input.value;
         selected.value = asset ? item.code : item.id;
         if (branch) branch.value = item.branch;
         if (asset) input.dispatchEvent(new CustomEvent('asset-selected', {detail: item}));
@@ -66,6 +71,7 @@ function initAutocomplete(group) {
         if (controller) controller.abort();
         const current = ++version;
         selected.value = '';
+        selectedLabel = '';
         if (branch) branch.value = '';
         if (branch) input.dispatchEvent(new CustomEvent('asset-cleared'));
         input.setCustomValidity('');
@@ -131,9 +137,11 @@ function initAutocomplete(group) {
         if (!group.contains(event.relatedTarget)) close();
     });
     input.form.addEventListener('submit', event => {
-        if (group.isConnected && !input.disabled && (input.required || input.value.trim()) && !selected.value) {
+        if (group.isConnected && !input.disabled && (input.required || input.value.trim()) && (!selected.value || input.value !== selectedLabel)) {
+            selected.value = '';
+            if (branch) branch.value = '';
             event.preventDefault();
-            input.setCustomValidity('Pesquise e selecione um item da lista.');
+            input.setCustomValidity(group.dataset.kind === 'asset' ? 'Selecione um Bem/Equipamento válido da lista.' : 'Pesquise e selecione um item da lista.');
             input.reportValidity();
         }
     });
@@ -261,7 +269,7 @@ document.addEventListener('invalid', event => {
     const field = event.target;
     if (!field.setCustomValidity || !field.required || field.disabled) return;
     if (field.value.trim() !== '') return;
-    const messages = {unit: 'Selecione a unidade.', asset_label: 'Pesquise e selecione um equipamento da lista.',
+    const messages = {unit: 'Selecione a unidade.', asset_label: 'Selecione um Bem/Equipamento válido da lista.',
         sector_id: 'Selecione a Mão de obra.', maintenance_type: 'Selecione o tipo de manutenção.',
         service_action_id: 'Selecione a ação.', service_component_id: 'Selecione o item/componente.', os_disposition: 'Escolha como a Ordem de Serviço deve seguir.'};
     const itemMessages = {employee_label: 'Pesquise e selecione um funcionário.', employee_registration: 'Selecione um funcionário.', service_date: 'Informe a data do serviço.',

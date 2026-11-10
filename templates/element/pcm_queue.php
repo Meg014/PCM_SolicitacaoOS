@@ -11,7 +11,7 @@
 <td><?= h($request->attendanceDuration()) ?></td><td><?= h($request->user->name) ?></td>
 <td><?= h($request->sector->name) ?><br><span class="help">Unidade: <?= h(\App\Domain\Enum\RequestUnit::display($request->unit)) ?></span></td>
 <td><?= h($request->asset_description) ?><br><span class="help"><?= h($request->asset_code) ?></span></td>
-<td><?= h(\App\Domain\Enum\MaintenanceType::from($request->maintenance_type)->label()) ?></td>
+<td><?= h(\App\Service\MaintenanceTypeCatalog::label($request->maintenance_type)) ?></td>
 <td><span class="status" data-status="<?= h($request->status) ?>"><?= h($statuses[$request->status]) ?></span><?php if ($request->totvs_os_number): ?><br><span class="help">O.S. <?= h($request->totvs_os_number) ?></span><?php endif; ?><?= $this->element('os_disposition', ['request' => $request, 'compact' => true]) ?></td>
 <td><?= $this->Html->link('Ver solicitação', ['controller' => 'Requests', 'action' => 'view', $request->id], ['class' => 'button secondary']) ?></td>
 </tr>

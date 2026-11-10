@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Domain\Enum\MaintenanceType;
 use App\Domain\Enum\RequestStatus;
 use App\Domain\Enum\UserRole;
 use App\Model\Entity\ServiceRequest;
@@ -38,7 +37,7 @@ class RequestsController extends AppController
                 $this->Flash->error('Não foi possível enviar a solicitação agora. Tente novamente.');
             }
         }
-        $types = MaintenanceType::options();
+        $types = \App\Service\MaintenanceTypeCatalog::options(true);
         $sectors = $this->fetchTable('Sectors')->find('list')->where(['active' => true])->orderBy(['name' => 'ASC'])->toArray();
         $this->set(\App\Service\ServiceSelection::options());
         $this->set(compact('request', 'types', 'sectors'));

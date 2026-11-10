@@ -46,7 +46,7 @@ class ServicesController extends AdminController
                 (int)$this->request->getAttribute('identity')->getIdentifier(),
                 $service->active ? 'ACTIVATED' : 'DEACTIVATED',
             );
-            $this->Flash->success($service->active ? 'Serviço ativado.' : 'Serviço desativado.');
+            $this->Flash->success($service->active ? $this->catalogLabel . ' ativado.' : $this->catalogLabel . ' desativado.');
         } catch (PersistenceFailedException $e) {
             $this->Flash->error('Não foi possível atualizar a situação do serviço.');
         } catch (\PDOException $e) {
@@ -71,7 +71,7 @@ class ServicesController extends AdminController
                     $before,
                     (int)$this->request->getAttribute('identity')->getIdentifier(),
                 );
-                $this->Flash->success($id === null ? 'Serviço cadastrado.' : 'Serviço atualizado.');
+                $this->Flash->success($id === null ? $this->catalogLabel . ' cadastrado.' : $this->catalogLabel . ' atualizado.');
 
                 return $this->redirect(['action' => 'index']);
             } catch (PersistenceFailedException $e) {

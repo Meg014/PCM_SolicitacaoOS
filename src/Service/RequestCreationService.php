@@ -56,8 +56,8 @@ class RequestCreationService
         }
         if ($entity->hasErrors()) { throw new PersistenceFailedException($entity, 'Revise os campos da solicitação.'); }
         $asset = $this->assets->find($entity->asset_code, (string)$entity->asset_branch);
-        if ($asset === null) {
-            $entity->setError('asset_code', 'Este equipamento não foi encontrado. Pesquise e selecione um item da lista.');
+        if ($asset === null || !is_string($data['asset_label'] ?? null) || $data['asset_label'] !== $asset['description'] . ' (' . $asset['code'] . ')') {
+            $entity->setError('asset_code', 'Selecione um Bem/Equipamento válido da lista.');
             throw new PersistenceFailedException($entity, 'Selecione um equipamento válido.');
         }
         try {
@@ -76,6 +76,10 @@ class RequestCreationService
                 if ($active && !in_array($data['confirm_existing'] ?? null, [true, 1, '1'], true)) {
                     $entity->setError('confirm_existing', 'Já existe solicitação ativa para este equipamento. Confira o alerta e confirme se deseja criar outra.');
                     throw new PersistenceFailedException($entity, 'Confirme a nova solicitação.');
+                }
+                if (!$connection->execute('SELECT id FROM maintenance_types WHERE code = :code AND active = true FOR SHARE', ['code' => $entity->maintenance_type])->fetch('assoc')) {
+                    $entity->setError('maintenance_type', 'Selecione um tipo de manutenção ativo.');
+                    throw new PersistenceFailedException($entity, 'Selecione um tipo de manutenção ativo.');
                 }
                 $sector = $connection->execute('SELECT id FROM sectors WHERE id = :id AND active = true FOR SHARE', ['id' => $entity->sector_id])->fetch('assoc');
                 if (!$sector) {

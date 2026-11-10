@@ -15,7 +15,7 @@ class HomologationTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.UserDepartments', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits',
+    protected array $fixtures = ['app.UserDepartments', 'app.MaintenanceTypes', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits',
         'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
 
     public function setUp(): void
@@ -34,7 +34,7 @@ class HomologationTest extends TestCase
     }
     private function data(): array
     {
-        return ['unit' => 'USINA', 'asset_code' => 'BEM01', 'asset_branch' => '01', 'sector_id' => 1, 'service_component_id' => 1, 'service_action_id' => 1,
+        return ['unit' => 'USINA', 'asset_label' => 'Bomba (BEM01)', 'asset_code' => 'BEM01', 'asset_branch' => '01', 'sector_id' => 1, 'service_component_id' => 1, 'service_action_id' => 1,
             'maintenance_type' => 'CORRETIVA', 'os_disposition' => 'MANTER_ABERTA',
             'confirm_existing' => '1', 'items' => []];
     }

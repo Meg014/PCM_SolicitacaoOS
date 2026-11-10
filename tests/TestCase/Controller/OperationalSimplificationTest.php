@@ -17,7 +17,7 @@ class OperationalSimplificationTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.UserDepartments', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits',
+    protected array $fixtures = ['app.UserDepartments', 'app.MaintenanceTypes', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits',
         'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
 
     private function table(string $name): \Cake\ORM\Table { return TableRegistry::getTableLocator()->get($name); }
@@ -116,7 +116,7 @@ class OperationalSimplificationTest extends TestCase
         $this->table('ServiceRequests')->getConnection()->execute("SELECT setval(pg_get_serial_sequence('service_requests', 'id'), (SELECT MAX(id) FROM service_requests))");
         $assets = $this->createMock(AssetsLookupInterface::class);
         $assets->method('find')->willReturn(['code' => 'NOVO', 'branch' => '01', 'description' => 'Bem novo']);
-        $request = (new RequestCreationService($assets, new \App\Test\Support\FakeEmployees()))->create(['unit' => 'USINA', 'asset_code' => 'NOVO', 'asset_branch' => '01',
+        $request = (new RequestCreationService($assets, new \App\Test\Support\FakeEmployees()))->create(['unit' => 'USINA', 'asset_label' => 'Bem novo (NOVO)', 'asset_code' => 'NOVO', 'asset_branch' => '01',
             'sector_id' => 1, 'maintenance_type' => 'CORRETIVA', 'service_component_id' => 1, 'service_action_id' => 1, 'os_disposition' => 'MANTER_ABERTA', 'items' => [$this->item()]], 3);
         $audit = $this->table('RequestAudits')->find()->where(['request_id' => $request->id, 'action' => 'REQUEST_CREATED'])->firstOrFail();
         $this->assertSame('user3', $audit->actor_snapshot['username']); $this->assertSame('MANTENEDOR', $audit->actor_snapshot['role']);

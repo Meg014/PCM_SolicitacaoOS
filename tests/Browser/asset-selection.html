@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<title>Teste de seleção obrigatória de Bem</title>
+<form>
+    <div class="autocomplete" data-kind="asset" data-lookup="/api/bens">
+        <input name="asset_label" data-search required aria-controls="asset-results">
+        <input type="hidden" name="asset_code" data-selected>
+        <input type="hidden" name="asset_branch" data-branch>
+        <p class="lookup-message"></p>
+        <div id="asset-results" role="listbox" hidden></div>
+    </div>
+</form>
+<pre id="result">RUNNING</pre>
+<script>
+window.fetch = async () => ({ok: true, json: async () => ({results: [
+    {code: 'BEM01', branch: '01', description: 'Bomba de água'}
+]})});
+</script>
+<script src="../../webroot/js/request-form.js"></script>
+<script>
+(async () => {
+    const form = document.querySelector('form');
+    const input = form.elements.asset_label;
+    const code = form.elements.asset_code;
+    const branch = form.elements.asset_branch;
+    let checks = 0;
+    const assert = (condition, message) => { if (!condition) throw new Error(message); ++checks; };
+    const submit = () => {
+        const event = new Event('submit', {cancelable: true});
+        form.dispatchEvent(event);
+        return !event.defaultPrevented;
+    };
+    const search = async () => {
+        input.value = 'Bomba';
+        input.dispatchEvent(new Event('input', {bubbles: true}));
+        await new Promise(resolve => setTimeout(resolve, 350));
+    };
+    try {
+        await search();
+        assert(!submit(), 'Texto digitado sem seleção deve bloquear envio');
+        assert(input.validationMessage === 'Selecione um Bem/Equipamento válido da lista.', 'Mensagem humana obrigatória');
+        document.querySelector('[role="option"]').click();
+        assert(code.value === 'BEM01' && branch.value === '01', 'Seleção deve guardar código e filial');
+        assert(submit() && input.checkValidity(), 'Bem selecionado deve permitir envio');
+        input.value = 'Outra descrição';
+        input.dispatchEvent(new Event('input', {bubbles: true}));
+        assert(code.value === '' && branch.value === '', 'Alteração manual deve limpar a seleção');
+        assert(!submit(), 'Alteração manual deve bloquear envio');
+        await search();
+        input.dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowDown', bubbles: true, cancelable: true}));
+        input.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+        assert(submit() && code.value === 'BEM01', 'Nova seleção por teclado deve permitir envio');
+        input.value = 'Texto alterado sem evento';
+        assert(!submit() && code.value === '' && branch.value === '', 'Envio deve conferir o texto atual');
+        document.getElementById('result').textContent = 'PASS: ' + checks + ' verificações';
+    } catch (error) {
+        document.getElementById('result').textContent = 'FAIL: ' + error.message;
+    }
+})();
+</script>
+</html>

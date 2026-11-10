@@ -18,7 +18,7 @@ class SharedExecutionTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
+    protected array $fixtures = ['app.MaintenanceTypes', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
 
     public function setUp(): void
     {
@@ -38,7 +38,7 @@ class SharedExecutionTest extends TestCase
 
     private function data(string $flow = 'ACOMPANHAMENTO'): array
     {
-        return ['os_disposition' => $flow === 'SOMENTE_ABERTURA' ? 'SOMENTE_ABERTURA' : 'MANTER_ABERTA', 'flow' => $flow, 'unit' => 'USINA', 'asset_code' => 'BEM02', 'asset_branch' => '01',
+        return ['os_disposition' => $flow === 'SOMENTE_ABERTURA' ? 'SOMENTE_ABERTURA' : 'MANTER_ABERTA', 'flow' => $flow, 'unit' => 'USINA', 'asset_label' => 'Centrífuga (BEM02)', 'asset_code' => 'BEM02', 'asset_branch' => '01',
             'sector_id' => 1, 'maintenance_type' => 'CORRETIVA', 'service_component_id' => 1, 'service_action_id' => 1, 'items' => []];
     }
 

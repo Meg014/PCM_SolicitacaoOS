@@ -17,7 +17,7 @@ class OsDispositionTest extends TestCase
 {
     use IntegrationTestTrait;
 
-    protected array $fixtures = ['app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
+    protected array $fixtures = ['app.MaintenanceTypes', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits', 'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments'];
 
     public function setUp(): void
     {
@@ -45,7 +45,7 @@ class OsDispositionTest extends TestCase
     private function data(OsDisposition $choice): array
     {
         return ['os_disposition' => $choice->value, 'flow' => 'FORJADO', 'unit' => 'USINA', 'sector_id' => 1,
-            'asset_code' => 'BEM02', 'asset_branch' => '01', 'maintenance_type' => 'CORRETIVA',
+            'asset_label' => 'Motor (BEM02)', 'asset_code' => 'BEM02', 'asset_branch' => '01', 'maintenance_type' => 'CORRETIVA',
             'service_component_id' => 1, 'service_action_id' => 1, 'items' => [], 'confirm_existing' => '1'];
     }
 

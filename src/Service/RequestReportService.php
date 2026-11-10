@@ -17,7 +17,7 @@ class RequestReportService
         }
         $dates = [];
         if (($filters['maintenance_type'] ?? '') !== '') {
-            if (!\App\Domain\Enum\MaintenanceType::tryFrom($filters['maintenance_type'])) { throw new \InvalidArgumentException('Selecione um tipo de manutenção válido.'); }
+            if (!array_key_exists($filters['maintenance_type'], \App\Service\MaintenanceTypeCatalog::options())) { throw new \InvalidArgumentException('Selecione um tipo de manutenção válido.'); }
             $query->where(['ServiceRequests.maintenance_type' => $filters['maintenance_type']]);
         }
         if (($filters['department_id'] ?? '') !== '') {

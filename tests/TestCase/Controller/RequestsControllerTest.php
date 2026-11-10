@@ -16,7 +16,7 @@ class RequestsControllerTest extends TestCase
     use IntegrationTestTrait;
 
     protected array $fixtures = [
-        'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits',
+        'app.MaintenanceTypes', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits',
         'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits',
     ];
 
@@ -45,7 +45,7 @@ class RequestsControllerTest extends TestCase
     {
         return [
             'flow' => 'ACOMPANHAMENTO', 'os_disposition' => 'MANTER_ABERTA', 'confirm_existing' => '1',
-            'unit' => 'USINA', 'asset_code' => 'BEM01', 'asset_branch' => '01', 'asset_label' => 'Bomba de água',
+            'unit' => 'USINA', 'asset_code' => 'BEM01', 'asset_branch' => '01', 'asset_label' => 'Bomba de água (BEM01)',
             'sector_id' => 1, 'sector_label' => 'Manutenção',
             'maintenance_type' => MaintenanceType::CORRETIVA->value,
             'service_component_id' => 1, 'service_action_id' => 1,
@@ -164,7 +164,7 @@ class RequestsControllerTest extends TestCase
         foreach ([['asset_code' => 'INVALIDO'], ['asset_branch' => '99']] as $change) {
             $this->submit(array_replace($this->payload(), $change));
             $this->assertResponseOk();
-            $this->assertResponseContains('Este equipamento não foi encontrado');
+            $this->assertResponseContains('Selecione um Bem/Equipamento válido da lista.');
         }
         $this->assertSame(2, $this->requests()->find()->count());
     }
@@ -180,7 +180,7 @@ class RequestsControllerTest extends TestCase
         $this->get('/api/bens?q=Bomba'); $this->assertResponseOk();
         $this->assertSame([], json_decode((string)$this->_response->getBody(), true)['results']);
         $this->submit($this->payload()); $this->assertResponseOk();
-        $this->assertResponseContains('Este equipamento não foi encontrado');
+        $this->assertResponseContains('Selecione um Bem/Equipamento válido da lista.');
         $this->assertSame(2, $this->requests()->find()->count());
         $this->get('/solicitacoes/1'); $this->assertResponseOk();
         $this->assertResponseContains('BEM01');
@@ -193,6 +193,55 @@ class RequestsControllerTest extends TestCase
         $this->submit(array_replace($this->payload(), ['asset_code' => '', 'sector_id' => '', 'asset_label' => 'Equipamento inventado', 'sector_label' => 'Setor inventado']));
         $this->assertResponseOk();
         $this->assertSame(2, $this->requests()->find()->count());
+    }
+
+    public function testManualEditAfterAssetSelectionCannotSave(): void
+    {
+        $this->session(['Auth' => 3]);
+        foreach (['Texto livre', '', null] as $label) {
+            $this->submit(array_replace($this->payload(), ['asset_label' => $label]));
+            $this->assertResponseOk();
+            $this->assertResponseContains('Selecione um Bem/Equipamento válido da lista.');
+            $this->assertSame(2, $this->requests()->find()->count());
+        }
+    }
+
+    public function testInactiveMaintenanceTypeIsHiddenAndRejectedWithoutChangingHistory(): void
+    {
+        $types = TableRegistry::getTableLocator()->get('MaintenanceTypes');
+        $types->updateAll(['active' => false], ['code' => 'CORRETIVA']);
+        $this->session(['Auth' => 3]);
+        $this->get('/solicitacoes/nova');
+        $this->assertResponseOk();
+        $this->assertResponseNotContains('<option value="CORRETIVA">');
+        $this->submit($this->payload());
+        $this->assertResponseOk();
+        $this->assertResponseContains('Selecione um tipo de manutenção ativo.');
+        $this->assertSame(2, $this->requests()->find()->count());
+        $this->get('/solicitacoes/1');
+        $this->assertResponseOk();
+        $this->assertResponseContains('Corretiva');
+    }
+
+    public function testNewMaintenanceTypeCanBeSelectedAndSaved(): void
+    {
+        $types = TableRegistry::getTableLocator()->get('MaintenanceTypes');
+        $types->getConnection()->execute("SELECT setval(pg_get_serial_sequence('maintenance_types', 'id'), (SELECT MAX(id) FROM maintenance_types))");
+        $type = $types->newEntity(['name' => 'Inspeção especial', 'active' => true]);
+        $types->saveOrFail($type);
+        $this->session(['Auth' => 3]);
+        $this->get('/solicitacoes/nova');
+        $this->assertResponseContains('Inspeção especial');
+        $this->submit(array_replace($this->payload(), ['maintenance_type' => $type->code]));
+        $this->assertResponseCode(302);
+        $saved = $this->requests()->find()->orderByDesc('id')->firstOrFail();
+        $this->assertSame($type->code, $saved->maintenance_type);
+        $this->assertSame('BEM01', $saved->asset_code);
+        $this->assertSame('01', $saved->asset_branch);
+        $this->assertSame('Bomba de água', $saved->asset_description);
+        $this->get('/solicitacoes/' . $saved->id);
+        $this->assertResponseOk();
+        $this->assertResponseContains('Inspeção especial');
     }
 
     public function testInactiveOrUnknownSectorIsRejected(): void
