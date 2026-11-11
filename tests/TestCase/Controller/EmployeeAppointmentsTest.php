@@ -112,20 +112,39 @@ class EmployeeAppointmentsTest extends TestCase
         $this->assertEquals($before, TableRegistry::getTableLocator()->get('ServiceRequests')->get(1)->last_activity_at);
     }
 
-    public function testOnlyActiveLocalFunctionsAreSentToTotvs(): void
+    public function testSearchDoesNotSendFunctionFiltersToTotvs(): void
     {
         $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read'])->getMock();
         $service->expects($this->once())->method('read')->with($this->anything(),
-            ['name_term' => '%AB%', 'registration_term' => '%AB%', 'function_0' => '00005'])->willReturn([]);
+            ['name_term' => '%AB%', 'registration_term' => '%AB%'])->willReturn([]);
         $this->assertSame([], $service->search('AB'));
     }
 
-    public function testSpreadsheetFunctionMatchesTotvsAndPersistsCanonicalSnapshot(): void
+    public function testVacationAndLeaveCanBeSavedWithoutAuthorizedFunction(): void
+    {
+        $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read', 'functions'])->getMock();
+        $service->method('functions')->willReturn([]);
+        $service->expects($this->exactly(2))->method('read')->willReturnOnConsecutiveCalls(
+            [['registration' => '006783', 'name' => 'FUNCIONÁRIO EM FÉRIAS', 'function_code' => '99999', 'situation' => 'F']],
+            [['registration' => '008272', 'name' => 'FUNCIONÁRIO AFASTADO', 'function_code' => '99998', 'situation' => 'A']],
+        );
+        $this->employees = $service;
+        $this->postRows([$this->row(), array_replace($this->row(), ['employee_registration' => '008272'])]);
+        $this->assertRedirect('/solicitacoes/1');
+        $items = TableRegistry::getTableLocator()->get('RequestItems')->find()->orderBy(['position' => 'ASC'])->toArray();
+        $this->assertCount(2, $items);
+        $this->assertSame('006783', $items[0]->employee_registration);
+        $this->assertSame('99999', $items[0]->employee_function_code);
+        $this->assertSame('008272', $items[1]->employee_registration);
+        $this->assertSame('99998', $items[1]->employee_function_code);
+    }
+
+    public function testOptionalFunctionDescriptionPersistsCanonicalSnapshot(): void
     {
         TableRegistry::getTableLocator()->get('AuthorizedFunctions')->updateAll(['code' => '32', 'name' => 'ELETRICISTA SR'], ['id' => 1]);
         $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read'])->getMock();
         $service->expects($this->once())->method('read')->with($this->anything(),
-            ['registration' => '006783', 'function_0' => '00032'])->willReturn([
+            ['registration' => '006783'])->willReturn([
                 ['registration' => '006783', 'name' => 'JOÃO DA SILVA', 'function_code' => '00032', 'situation' => 'F'],
             ]);
         $this->employees = $service;

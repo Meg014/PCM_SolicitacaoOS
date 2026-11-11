@@ -31,6 +31,15 @@ const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
   search.value='ABAD'; search.dispatchEvent(new Event('input',{bubbles:true}));
   check(row.querySelector('[data-selected]').value==='','edited selection invalidated'); await wait(400);
   row.querySelector('[role=option]').click(); check(search.value==='006783 - ABADIO - Mecânico','touch selection');
+  for (const situation of ['', 'F', 'A']) {
+   window.fetch=async()=>({ok:true,redirected:false,json:async()=>({results:[{registration:'008272',label:'008272 - NOME',situation}]})});
+   search.value='008272'; search.dispatchEvent(new Event('input',{bubbles:true})); await wait(400);
+   const option=row.querySelector('[role=option]');
+   check(!!option,'situation appears '+situation);
+   check(option.style.color===(situation ? 'rgb(108, 117, 125)' : ''),'gray only for vacation/leave '+situation);
+   check(!option.disabled && option.getAttribute('aria-disabled')!=='true','selectable '+situation);
+   option.click(); check(row.querySelector('[data-selected]').value==='008272','situation selection '+situation);
+  }
   row.querySelector('[data-item-field=service_date]').value='2026-11-03';
   row.querySelector('[data-item-field=start_time]').value='08:00';
   row.querySelector('[data-item-field=end_time]').value='09:00';

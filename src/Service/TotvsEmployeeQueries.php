@@ -6,21 +6,17 @@ namespace App\Service;
 /** Consultas parametrizadas e diagnóstico, sempre somente leitura. */
 final class TotvsEmployeeQueries
 {
-    public const ALLOWED_SITUATIONS = ['', 'F'];
+    public const ALLOWED_SITUATIONS = ['', 'F', 'A'];
 
-    public static function lookup(int $functions, bool $find = false): string
+    public static function lookup(bool $find = false): string
     {
-        if ($functions < 1 || $functions > 500) {
-            throw new \InvalidArgumentException('Quantidade de funções fora do limite de consulta.');
-        }
-        $codes = implode(', ', array_map(fn($i) => ':function_' . $i, range(0, $functions - 1)));
         $situations = implode(', ', array_map(fn($s) => "'" . $s . "'", self::ALLOWED_SITUATIONS));
         $filter = $find ? 'RTRIM(RA_MAT) = :registration'
             : '(UPPER(RA_NOME) LIKE UPPER(:name_term) OR UPPER(RA_MAT) LIKE UPPER(:registration_term))';
         $limit = $find ? 2 : 20;
 
         return "SELECT TOP ($limit) RTRIM(RA_MAT) AS registration, RTRIM(RA_NOME) AS name, RTRIM(RA_CODFUNC) AS function_code, LTRIM(RTRIM(RA_SITFOLH)) AS situation\n"
-            . "FROM DADOSP12.dbo.SRA010\nWHERE RA_CODFUNC IN ($codes) AND LTRIM(RTRIM(RA_SITFOLH)) IN ($situations)\n"
+            . "FROM DADOSP12.dbo.SRA010\nWHERE LTRIM(RTRIM(RA_SITFOLH)) IN ($situations)\n"
             . "AND NULLIF(LTRIM(RTRIM(RA_MAT)), '') IS NOT NULL AND NULLIF(LTRIM(RTRIM(RA_NOME)), '') IS NOT NULL\n"
             . "AND $filter\nORDER BY name, registration, function_code, situation";
     }
@@ -42,8 +38,6 @@ SQL;
         if (in_array($sql, [self::COLUMNS, self::ACCESS], true)) {
             return true;
         }
-        $count = preg_match_all('/:function_\d+\b/', $sql);
-        return $count >= 1 && $count <= 500 &&
-            ($sql === self::lookup($count) || $sql === self::lookup($count, true));
+        return $sql === self::lookup() || $sql === self::lookup(true);
     }
 }

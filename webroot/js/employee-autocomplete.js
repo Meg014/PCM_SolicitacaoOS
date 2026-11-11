@@ -79,6 +79,7 @@ function initEmployeeAutocomplete(group) {
                     option.setAttribute('role', 'option');
                     option.setAttribute('aria-selected', 'false');
                     option.className = 'd-block w-100 text-start border-0 border-bottom p-3 bg-white';
+                    if (['F', 'A'].includes(employee.situation)) option.style.color = '#6c757d';
                     option.textContent = employee.label;
                     option.addEventListener('mousedown', event => event.preventDefault());
                     option.addEventListener('click', () => choose(employee));

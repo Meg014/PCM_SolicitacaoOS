@@ -31,7 +31,7 @@ class TotvsEmployeesService implements EmployeesLookupInterface
     protected function functions(): array
     {
         return TableRegistry::getTableLocator()->get('AuthorizedFunctions')->find('list', keyField: 'code', valueField: 'name')
-            ->where(['active' => true])->orderBy(['code' => 'ASC'])->toArray();
+            ->orderBy(['code' => 'ASC'])->toArray();
     }
 
     protected function read(string $sql, array $params): array
@@ -42,31 +42,31 @@ class TotvsEmployeesService implements EmployeesLookupInterface
     private function lookup(array $params, bool $find): array
     {
         try {
+            $rows = $this->read(TotvsEmployeeQueries::lookup($find), $params);
+            // Local descriptions decorate labels only; they never determine eligibility.
             $functions = [];
-            foreach ($this->functions() as $code => $name) {
-                $code = AuthorizedFunctionCode::forTotvs((string)$code);
-                if (isset($functions[$code]) && $functions[$code] !== $name) {
-                    throw new \UnexpectedValueException('Funções equivalentes com descrições conflitantes.');
+            try {
+                foreach ($this->functions() as $code => $name) {
+                    $functions[AuthorizedFunctionCode::forTotvs((string)$code)] = $name;
                 }
-                $functions[$code] = $name;
+            } catch (\Throwable) {
+                // Employee lookup remains available without the optional local catalog.
             }
-            if (!$functions) {
-                return [];
-            }
-            foreach (array_keys($functions) as $index => $code) {
-                $params['function_' . $index] = (string)$code;
-            }
-            $rows = $this->read(TotvsEmployeeQueries::lookup(count($functions), $find), $params);
             $results = [];
             foreach ($rows as $row) {
                 $code = rtrim((string)$row['function_code']);
                 $registration = rtrim((string)$row['registration']);
                 $name = rtrim((string)$row['name']);
-                if (!isset($functions[$code]) || !in_array(trim((string)$row['situation']), TotvsEmployeeQueries::ALLOWED_SITUATIONS, true) || trim($registration) === '' || trim($name) === '') {
+                $situation = trim((string)$row['situation']);
+                if (!in_array($situation, TotvsEmployeeQueries::ALLOWED_SITUATIONS, true) || trim($registration) === '' || trim($name) === '') {
                     continue;
                 }
+                $functionName = $functions[$code] ?? '';
+                $label = $registration . ' - ' . $name . ($functionName !== '' ? ' - ' . $functionName : '');
+                $statusLabel = match ($situation) { 'F' => 'FÉRIAS', 'A' => 'AFASTADO', default => '' };
                 $results[] = ['registration' => $registration, 'name' => $name, 'function_code' => $code,
-                    'function_name' => $functions[$code], 'label' => $registration . ' - ' . $name . ' - ' . $functions[$code]];
+                    'function_name' => $functionName, 'situation' => $situation,
+                    'label' => $label . ($statusLabel !== '' ? ' - ' . $statusLabel : '')];
             }
             return $results;
         } catch (\Throwable $e) {

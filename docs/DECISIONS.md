@@ -282,3 +282,8 @@ Formato:
 - Novas solicitações listam somente tipos ativos e revalidam a situação com lock na transação de criação. O campo maintenance_type existente continua armazenando o código, sem reescrever dados antigos.
 - Bem continua sendo consultado somente por leitura no TOTVS; ao salvar, conferir código/filial e se o texto exibido corresponde exatamente à descrição e ao código retornados. Texto alterado ou sem seleção é rejeitado também no backend; descrição salva continua vindo do TOTVS. JavaScript limpa código/filial ao digitar e verifica novamente o texto no envio.
 - Validação: 91 testes/958 verificações aprovados nos sete grupos afetados (solicitações, cadastros, anexos e fluxos existentes); sintaxe PHP e git diff --check aprovados. Migration aplicada no PostgreSQL local. Teste de interface em tests/Browser/asset-selection.html criado; execução do Chrome bloqueada pela aprovação automática, sem motivo específico informado, portanto o teste de navegador não foi executado.
+
+## 2026-11-11 — Funcionários sem filtro por função
+- Substitui a restrição anterior por funções locais/planilha: busca e revalidação consultam DADOSP12.dbo.SRA010 por nome/matrícula, sem filtrar RA_CODFUNC. authorized_functions fornece apenas descrições opcionais no rótulo; catálogo vazio, inativo ou indisponível não bloqueia funcionários.
+- Situação vazio/espaço permite seleção normal; F (FÉRIAS) e A (AFASTADO) aparecem em cinza com situação no rótulo e permitem seleção e salvamento. D (DEMITIDO) não aparece nem passa pela revalidação. Mantida lista explícita de situações aceitas.
+- Somente SELECT no TOTVS e os quatro campos existentes. Sem migrations, alterações de apontamentos salvos ou mudanças nas demais regras.
