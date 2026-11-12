@@ -1,5 +1,5 @@
 <?php
-// Lucide SVGs: icons/LICENSE. CakePHP mantém rotas, autorização e CSRF.
+// CakePHP mantém rotas, autorização e CSRF.
 $admin = $this->getRequest()->getAttribute('identity')->get('role') === \App\Domain\Enum\UserRole::ADMIN_PCM->value;
 $showView = $showView ?? true;
 $showEdit = $admin && ($showEdit ?? true);
@@ -10,13 +10,13 @@ $dialogId = 'delete-request-' . $request->id . '-' . bin2hex(random_bytes(4));
 ?>
 <div class="request-actions" role="group" aria-label="Ações da solicitação <?= h($request->number) ?>">
 <?php if ($showView): ?>
-<?= $this->Html->link($this->element('icons/eye') . '<span>Ver</span>', $viewHref, ['class' => 'request-action request-action-view', 'title' => 'Ver solicitação', 'escape' => false]) ?>
+<?= $this->Html->link('Ver', $viewHref, ['class' => 'request-action request-action-view', 'title' => 'Ver solicitação', 'escape' => false]) ?>
 <?php endif; ?>
 <?php if ($showEdit): ?>
-<?= $this->Html->link($this->element('icons/pencil') . '<span>Editar</span>', $editHref, ['class' => 'request-action request-action-edit', 'title' => 'Editar solicitação', 'escape' => false]) ?>
+<?= $this->Html->link('Editar', $editHref, ['class' => 'request-action request-action-edit', 'title' => 'Editar solicitação', 'escape' => false]) ?>
 <?php endif; ?>
 <?php if ($showDelete): ?>
-<button type="button" class="request-action request-action-delete" title="Excluir solicitação" data-delete-dialog="<?= h($dialogId) ?>" aria-haspopup="dialog" aria-controls="<?= h($dialogId) ?>"><?= $this->element('icons/trash-2') ?><span>Excluir</span></button>
+<button type="button" class="request-action request-action-delete" title="Excluir solicitação" data-delete-dialog="<?= h($dialogId) ?>" aria-haspopup="dialog" aria-controls="<?= h($dialogId) ?>">Excluir</button>
 <dialog id="<?= h($dialogId) ?>" class="request-delete-dialog" aria-labelledby="<?= h($dialogId) ?>-title" aria-describedby="<?= h($dialogId) ?>-description">
 <h2 id="<?= h($dialogId) ?>-title">Excluir solicitação?</h2>
 <p id="<?= h($dialogId) ?>-description">Você está prestes a excluir a solicitação <?= h($request->number) ?>. Esta ação removerá a solicitação da listagem e dos relatórios.</p>
