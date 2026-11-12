@@ -13,6 +13,54 @@ use Cake\ORM\Exception\PersistenceFailedException;
 
 class RequestsController extends AppController
 {
+    public function edit(string $id, \App\Service\AssetsLookupInterface $assets): mixed
+    {
+        $this->request->allowMethod(['get', 'post']);
+        $actorId = (int)$this->request->getAttribute('identity')->getIdentifier();
+        \App\Service\RequestAdministrationService::authorize($actorId);
+        $request = $this->fetchTable('ServiceRequests')->get($id);
+        if ($this->request->is('post')) {
+            try {
+                (new \App\Service\RequestAdministrationService())->edit((int)$id, $actorId, $this->request->getData(), $assets);
+                $this->Flash->success('Solicitação atualizada.');
+                return $this->redirect(['action' => 'view', $id]);
+            } catch (PersistenceFailedException $e) {
+                if ($e->getEntity() instanceof ServiceRequest) { $request = $e->getEntity(); }
+                $this->Flash->error('Revise os campos indicados.');
+            } catch (\InvalidArgumentException | \Cake\Http\Exception\ConflictException | AssetsUnavailableException $e) {
+                $this->Flash->error($e->getMessage());
+            } catch (\PDOException $e) {
+                $this->Flash->error('Não foi possível salvar. Tente novamente.');
+            }
+        }
+        $types = \App\Service\MaintenanceTypeCatalog::options(true);
+        $sectors = $this->fetchTable('Sectors')->find('list')->where(['active' => true])->orderBy(['name' => 'ASC'])->toArray();
+        $options = \App\Service\ServiceSelection::options();
+        foreach (['serviceActionOptions' => ['service_action_id', 'service_action_name'], 'serviceComponentOptions' => ['service_component_id', 'service_component_name']] as $key => [$field, $name]) {
+            if ($request->get($field)) { $options[$key] += [$request->get($field) => $request->get($name)]; }
+        }
+        if ($request->sector_id && !isset($sectors[$request->sector_id])) { $sectors[$request->sector_id] = $this->fetchTable('Sectors')->get($request->sector_id)->name; }
+        if ($request->maintenance_type && !isset($types[$request->maintenance_type])) { $types[$request->maintenance_type] = \App\Service\MaintenanceTypeCatalog::label($request->maintenance_type); }
+        $this->set($options);
+        $this->set(compact('request', 'types', 'sectors'));
+        return null;
+    }
+
+    public function delete(string $id): mixed
+    {
+        $this->request->allowMethod(['post']);
+        $actorId = (int)$this->request->getAttribute('identity')->getIdentifier();
+        \App\Service\RequestAdministrationService::authorize($actorId);
+        try {
+            (new \App\Service\RequestAdministrationService())->delete((int)$id, $actorId);
+            $this->Flash->success('Solicitação excluída definitivamente.');
+            return $this->redirect(['controller' => 'Dashboard', 'action' => 'index']);
+        } catch (\Cake\Http\Exception\ConflictException | \RuntimeException $e) {
+            $this->Flash->error($e->getMessage());
+        }
+        return $this->redirect(['action' => 'view', $id]);
+    }
+
     public function add(RequestCreationService $creation): mixed
     {
         $this->request->allowMethod(['get', 'post']);

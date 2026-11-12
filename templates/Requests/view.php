@@ -1,5 +1,6 @@
 <?php $this->assign('title', $request->number); ?>
 <h1><?= h($request->number) ?></h1><?= $this->element('request_activity', ['request' => $request]) ?>
+<?= $this->element('request_admin_actions', ['request' => $request]) ?>
 <?php if ($request->flow === \App\Domain\Enum\RequestFlow::ACOMPANHAMENTO->value && in_array($request->status, [\App\Domain\Enum\RequestStatus::OS_ABERTA->value, \App\Domain\Enum\RequestStatus::EM_EXECUCAO->value], true)): ?>
 <div class="actions execution-shortcuts">
 <?= $this->Html->link('Adicionar apontamento / continuar serviço', '#execution', ['class' => 'button']) ?>

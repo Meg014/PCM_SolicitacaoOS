@@ -31,6 +31,8 @@ return function (RouteBuilder $routes): void {
         $builder->connect('/acompanhamento', ['controller' => 'Requests', 'action' => 'work'])->setMethods(['GET']);
         $builder->connect('/api/setores', ['controller' => 'Lookups', 'action' => 'sectors'])->setMethods(['GET']);
         $builder->connect('/minhas-solicitacoes', ['controller' => 'Requests', 'action' => 'index'])->setMethods(['GET']);
+        $builder->connect('/solicitacoes/{id}/editar', ['controller' => 'Requests', 'action' => 'edit'])->setPatterns(['id' => '[0-9]+'])->setPass(['id'])->setMethods(['GET', 'POST']);
+        $builder->connect('/solicitacoes/{id}/excluir', ['controller' => 'Requests', 'action' => 'delete'])->setPatterns(['id' => '[0-9]+'])->setPass(['id'])->setMethods(['POST']);
         $builder->connect('/solicitacoes/nova', ['controller' => 'Requests', 'action' => 'add'])->setMethods(['GET', 'POST']);
         $builder->connect('/solicitacoes/{id}', ['controller' => 'Requests', 'action' => 'view'])
             ->setPatterns(['id' => '[0-9]+'])->setPass(['id'])->setMethods(['GET']);

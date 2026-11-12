@@ -17,7 +17,7 @@ class RequestsControllerTest extends TestCase
 
     protected array $fixtures = [
         'app.MaintenanceTypes', 'app.Users', 'app.Sectors', 'app.Services', 'app.ServiceActions', 'app.ServiceComponents', 'app.RegistrationAudits',
-        'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits',
+        'app.ServiceRequests', 'app.RequestItems', 'app.RequestAudits', 'app.RequestAttachments',
     ];
 
     public function setUp(): void
@@ -51,6 +51,153 @@ class RequestsControllerTest extends TestCase
             'service_component_id' => 1, 'service_action_id' => 1,
             'items' => [['description' => 'Trocar vedação', 'employee_registration' => 'José externo', 'service_date' => '2026-10-06', 'start_time' => '08:00', 'end_time' => '09:00'], ['description' => 'Verificar tubulação', 'employee_registration' => 'Maria externa', 'service_date' => '2026-10-07', 'start_time' => '10:00', 'end_time' => '11:30']],
         ];
+    }
+
+    public function testAdministrativeActionsRejectOperationalProfiles(): void
+    {
+        foreach ([2, 3] as $id) {
+            $this->session(['Auth' => $id]);
+            $this->get('/solicitacoes/1/editar');
+            $this->assertResponseCode(403);
+            $this->enableCsrfToken('pcm_solicitacao_os_csrf');
+            $this->post('/solicitacoes/1/editar', $this->payload());
+            $this->assertResponseCode(403);
+            $this->post('/solicitacoes/1/excluir');
+            $this->assertResponseCode(403);
+        }
+        $this->assertSame(2, $this->requests()->find()->count());
+    }
+
+    public function testAdministrativeEditPreservesIdentityAndChildrenAndAuditsChanges(): void
+    {
+        $this->session(['Auth' => 1]);
+        $this->submit($this->payload());
+        $original = $this->requests()->find()->orderBy(['id' => 'DESC'])->contain(['RequestItems', 'RequestAudits'])->firstOrFail();
+        $this->get('/solicitacoes/' . $original->id . '/editar');
+        $this->assertResponseOk();
+        $data = array_replace($this->payload(), ['unit' => 'FABRICA', 'number' => 'FORJADO', 'totvs_os_number' => '999', 'status' => 'CANCELADA', 'user_id' => 2, 'items' => []]);
+        $this->post('/solicitacoes/' . $original->id . '/editar', $data);
+        $this->assertResponseCode(302);
+        $updated = $this->requests()->get($original->id, contain: ['RequestItems', 'RequestAudits']);
+        $this->assertSame('FABRICA', $updated->unit);
+        foreach (['number', 'totvs_os_number', 'status', 'user_id'] as $field) { $this->assertSame($original->get($field), $updated->get($field)); }
+        $this->assertEquals($original->request_items, $updated->request_items);
+        $audit = end($updated->request_audits);
+        $this->assertSame('REQUEST_UPDATED', $audit->action);
+        $this->assertSame(1, $audit->user_id);
+        $this->assertSame('ADMIN_PCM', $audit->actor_snapshot['role']);
+        $this->assertSame(['unit' => 'USINA'], $audit->old_values);
+        $this->assertSame(['unit' => 'FABRICA'], $audit->new_values);
+        $this->assertNotNull($audit->created_at);
+    }
+
+    public function testAdministrativeEditRejectsInvalidAssetAndUnsafeFlow(): void
+    {
+        $this->session(['Auth' => 1]);
+        $this->submit($this->payload());
+        $original = $this->requests()->find()->orderBy(['id' => 'DESC'])->firstOrFail();
+        foreach ([['asset_label' => 'Texto livre'], ['asset_code' => 'INVALIDO'], ['os_disposition' => 'SOMENTE_ABERTURA']] as $override) {
+            $this->post('/solicitacoes/' . $original->id . '/editar', array_replace($this->payload(), $override));
+            $this->assertResponseOk();
+            $this->assertEquals($original->toArray(), $this->requests()->get($original->id)->toArray());
+        }
+        $this->requests()->updateAll(['totvs_os_number' => 'OS123'], ['id' => $original->id]);
+        $this->post('/solicitacoes/' . $original->id . '/editar', array_replace($this->payload(), ['os_disposition' => 'PODE_ENCERRAR']));
+        $this->assertResponseOk();
+        $this->assertSame('OS123', $this->requests()->get($original->id)->totvs_os_number);
+    }
+
+    public function testAdministrativeDeleteRemovesChildrenAndPhysicalAttachments(): void
+    {
+        $this->session(['Auth' => 1]);
+        $this->submit($this->payload());
+        $request = $this->requests()->find()->orderBy(['id' => 'DESC'])->firstOrFail();
+        $tables = TableRegistry::getTableLocator();
+        $root = TMP . 'admin-delete-' . bin2hex(random_bytes(6));
+        mkdir($root);
+        \Cake\Core\Configure::write('Attachments.path', $root);
+        file_put_contents($root . DS . 'test.jpg', 'test');
+        try {
+            $attachments = $tables->get('RequestAttachments');
+            $attachments->saveOrFail($attachments->newEntity(['request_id' => $request->id, 'user_id' => 1, 'original_name' => 'test.jpg', 'stored_name' => 'test.jpg', 'mime_type' => 'image/jpeg', 'size' => 4, 'created_at' => new \Cake\I18n\DateTime()]));
+            $this->get('/solicitacoes/' . $request->id);
+            $this->assertResponseContains('Tem certeza que deseja excluir definitivamente');
+            $this->get('/solicitacoes/' . $request->id . '/excluir');
+            $this->assertResponseCode(404);
+            $this->post('/solicitacoes/' . $request->id . '/excluir');
+            $this->assertResponseCode(302);
+            $this->assertFalse($this->requests()->exists(['id' => $request->id]));
+            foreach (['RequestItems', 'RequestAttachments', 'RequestAudits'] as $table) { $this->assertSame(0, $tables->get($table)->find()->where(['request_id' => $request->id])->count()); }
+            $this->assertFileDoesNotExist($root . DS . 'test.jpg');
+            $this->assertSame([], array_values(array_diff(scandir($root), ['.', '..'])));
+            $this->assertTrue($this->requests()->exists(['id' => 1]));
+        } finally {
+            foreach (glob($root . DS . '*') as $path) { unlink($path); }
+            rmdir($root);
+            \Cake\Core\Configure::delete('Attachments.path');
+        }
+    }
+
+    public function testAdministrativeDeleteBlocksLinkedOrder(): void
+    {
+        $this->session(['Auth' => 1]);
+        $this->requests()->updateAll(['totvs_os_number' => 'OS123'], ['id' => 1]);
+        $this->enableCsrfToken('pcm_solicitacao_os_csrf');
+        $this->post('/solicitacoes/1/excluir');
+        $this->assertRedirect('/solicitacoes/1');
+        $this->assertSame('OS123', $this->requests()->get(1)->totvs_os_number);
+    }
+
+    public function testAdministrativeEditAuditFailureRollsBackChanges(): void
+    {
+        $this->session(['Auth' => 1]);
+        $this->submit($this->payload());
+        $request = $this->requests()->find()->orderBy(['id' => 'DESC'])->firstOrFail();
+        $audits = TableRegistry::getTableLocator()->get('RequestAudits');
+        $audits->getValidator()->add('action', 'reject', ['rule' => fn() => false]);
+        $assets = $this->createMock(AssetsLookupInterface::class);
+        $assets->method('find')->willReturn(['code' => 'BEM01', 'branch' => '01', 'description' => 'Bomba de água']);
+        try {
+            (new \App\Service\RequestAdministrationService())->edit($request->id, 1, array_replace($this->payload(), ['unit' => 'FABRICA']), $assets);
+            $this->fail('A falha de auditoria deve reverter a edição.');
+        } catch (\Cake\ORM\Exception\PersistenceFailedException $e) {
+            $this->assertTrue($e->getEntity()->hasErrors());
+        }
+        $this->assertSame('USINA', $this->requests()->get($request->id)->unit);
+        $this->assertSame(0, $audits->find()->where(['action' => 'REQUEST_UPDATED'])->count());
+    }
+
+    public function testAdministrativeEditAllowsSafeFlowChangeBeforeLink(): void
+    {
+        $this->session(['Auth' => 1]);
+        $data = array_replace($this->payload(), ['items' => [], 'os_disposition' => 'SOMENTE_ABERTURA']);
+        $this->submit($data);
+        $request = $this->requests()->find()->orderBy(['id' => 'DESC'])->firstOrFail();
+        $this->post('/solicitacoes/' . $request->id . '/editar', array_replace($data, ['os_disposition' => 'MANTER_ABERTA']));
+        $this->assertResponseCode(302);
+        $updated = $this->requests()->get($request->id);
+        $this->assertSame('ACOMPANHAMENTO', $updated->flow);
+        $this->assertSame('MANTER_ABERTA', $updated->os_disposition);
+        $this->assertSame($request->status, $updated->status);
+    }
+
+    public function testAdministrativeEditRebuildsServiceAndPreservesLinkedOrder(): void
+    {
+        $this->session(['Auth' => 1]);
+        $this->submit($this->payload());
+        $request = $this->requests()->find()->orderBy(['id' => 'DESC'])->firstOrFail();
+        $this->requests()->updateAll(['totvs_os_number' => 'OS123'], ['id' => $request->id]);
+        $this->post('/solicitacoes/' . $request->id . '/editar', array_replace($this->payload(), [
+            'service_action_id' => 2, 'service_component_id' => 2, 'maintenance_type' => 'PREVENTIVA', 'totvs_os_number' => 'FORJADA',
+        ]));
+        $this->assertResponseCode(302);
+        $updated = $this->requests()->get($request->id);
+        $this->assertSame('Soldar chapa', $updated->description);
+        $this->assertSame('PREVENTIVA', $updated->maintenance_type);
+        $this->assertSame('OS123', $updated->totvs_os_number);
+        $audit = TableRegistry::getTableLocator()->get('RequestAudits')->find()->where(['request_id' => $request->id, 'action' => 'REQUEST_UPDATED'])->firstOrFail();
+        $this->assertSame('Limpeza geral', $audit->old_values['description']);
+        $this->assertSame('Soldar chapa', $audit->new_values['description']);
     }
 
     private function submit(array $data): void
@@ -403,7 +550,7 @@ class RequestsControllerTest extends TestCase
         $fake = $this->createMock(AssetsLookupInterface::class);
         $fake->method('find')->willReturn(['code' => 'BEM01', 'branch' => '01', 'description' => 'Bomba de água']);
         try {
-            (new \App\Service\RequestCreationService($fake))->create($this->payload(), 3);
+            (new \App\Service\RequestCreationService($fake, new \App\Test\Support\FakeEmployees()))->create($this->payload(), 3);
             $this->fail('A falha de auditoria deve impedir o envio.');
         } catch (\Cake\ORM\Exception\PersistenceFailedException $e) {
             $this->assertTrue($e->getEntity()->hasErrors());
