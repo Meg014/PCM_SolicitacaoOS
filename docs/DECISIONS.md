@@ -294,3 +294,10 @@ Formato:
 - Exceção explícita à regra geral de não excluir: ADMIN_PCM pode excluir definitivamente pedidos sem O.S. vinculada, sem motivo, com a confirmação solicitada. Remove os três conjuntos de filhos existentes (apontamentos, anexos e auditorias) na transação local. Arquivos são movidos temporariamente no mesmo diretório, restaurados em falha da transação e apagados após confirmação do banco. Falha de remoção física é informada para suporte.
 - Cancelamento e permissões operacionais de PCM/MANTENEDOR permanecem vigentes. Nenhuma escrita no TOTVS.
 - Validação: 66 testes de solicitações, tratamento e acompanhamento aprovados (492 verificações); após ampliar a cobertura, os 8 testes administrativos passaram (55 verificações). Sintaxe dos 8 arquivos PHP alterados/criados e git diff --check aprovados. Teste antigo de rollback de criação passou a injetar FakeEmployees para não consultar o TOTVS real.
+
+## 2026-11-12 — URLs administrativas em subdiretório e correção do Bem
+- Se APP_BASE_URL estiver ausente, usar a subpasta da APP_FULL_BASE_URL configurada como base do CakePHP. Sem URL pública com subpasta, manter detecção local; não fixar /pcm-solicitacao-os nos links. Base explícita continua tendo precedência.
+- Formulário administrativo envia POST explicitamente à rota edit; o padrão PUT do FormHelper para entidades existentes não era aceito pela rota. Links, formulários e redirects usam rotas do CakePHP.
+- Ao trocar Bem validado, gravar também a descrição retornada pelo TOTVS em campo protegido contra dados do cliente. Preservadas as restrições existentes para O.S. vinculada, auditoria e dependentes.
+- Ações da fila compactas, lado a lado, com texto, ícone e title, usando as cores do tema escuro e mantendo área de toque mínima de 44 px.
+- Validação: 47 testes de subdiretório/solicitações aprovados no conjunto de regressão; 10 testes de tratamento aprovados após ajustar a expectativa visual dos botões. Cobertura inclui URLs e redirects no prefixo, POST do formulário, permissões, troca de Bem com auditoria, preservação de apontamentos/anexos e exclusão com remoção física. Sintaxe PHP e git diff --check aprovados.

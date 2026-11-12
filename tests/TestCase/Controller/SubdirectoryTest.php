@@ -92,6 +92,44 @@ class SubdirectoryTest extends TestCase
         $this->assertResponseContains('href="' . self::BASE . '/solicitacoes/1"');
     }
 
+    public function testAdministrativeLinksSaveDeleteAndCancelStayWithinSubdirectory(): void
+    {
+        $this->session(['Auth' => 1]);
+        $this->mockService(\App\Service\AssetsLookupInterface::class, fn() => new class implements \App\Service\AssetsLookupInterface {
+            public function search(string $term): array { return []; }
+            public function find(string $code, string $branch): ?array {
+                return $code === 'BEM01' && $branch === '01' ? ['code' => $code, 'branch' => $branch, 'description' => 'Bomba de água'] : null;
+            }
+        });
+        $this->get($this->url('/painel'));
+        $this->assertResponseOk();
+        foreach (['href="' . self::BASE . '/solicitacoes/1"', 'href="' . self::BASE . '/solicitacoes/1/editar"', 'action="' . self::BASE . '/solicitacoes/1/excluir"', 'class="request-actions"', 'title="Ver solicitação"', 'title="Editar solicitação"', 'title="Excluir solicitação"'] as $expected) {
+            $this->assertResponseContains($expected);
+        }
+        $this->get($this->url('/solicitacoes/1'));
+        $this->assertResponseOk();
+        $this->assertResponseContains('href="' . self::BASE . '/solicitacoes/1/editar"');
+        $this->assertResponseContains('action="' . self::BASE . '/solicitacoes/1/excluir"');
+        $this->assertResponseContains('action="' . self::BASE . '/solicitacoes/1/cancelar"');
+        $this->get($this->url('/solicitacoes/1/editar'));
+        $this->assertResponseOk();
+        $this->assertResponseContains('action="' . self::BASE . '/solicitacoes/1/editar"');
+        $this->assertResponseContains('href="' . self::BASE . '/solicitacoes/1"');
+        $this->assertResponseContains('data-lookup="' . self::BASE . '/api/bens"');
+        $this->assertResponseNotContains('value="PUT"');
+        $this->assertResponseNotContains('href="/solicitacoes/');
+        $this->enableCsrfToken('pcm_solicitacao_os_csrf');
+        $this->post($this->url('/solicitacoes/1/editar'), ['_method' => 'POST', 'unit' => 'USINA', 'sector_id' => 1,
+            'asset_code' => 'BEM01', 'asset_branch' => '01', 'asset_label' => 'Bomba de água (BEM01)',
+            'maintenance_type' => 'CORRETIVA', 'service_action_id' => 1, 'service_component_id' => 1, 'os_disposition' => 'MANTER_ABERTA']);
+        $this->assertRedirect($this->url('/solicitacoes/1'));
+        $this->post($this->url('/solicitacoes/1/cancelar'), ['reason' => 'Teste de cancelamento']);
+        $this->assertRedirect($this->url('/solicitacoes/1'));
+        $this->post($this->url('/solicitacoes/1/excluir'));
+        $this->assertRedirect($this->url('/painel'));
+        $this->assertFalse(TableRegistry::getTableLocator()->get('ServiceRequests')->exists(['id' => 1]));
+    }
+
     public function testBootstrapFromEnvironmentGeneratesSinglePrefixAndSupportsLocalFalse(): void
     {
         $script = <<<'PHP'
@@ -112,8 +150,8 @@ echo json_encode(['baseUrl' => \Cake\Core\Configure::read('App.baseUrl'), 'base'
     'url' => \Cake\Routing\Router::url(['controller' => 'Home', 'action' => 'login'], true),
     'sessionSecure' => \Cake\Core\Configure::read('Session.ini')['session.cookie_secure']], JSON_THROW_ON_ERROR);
 PHP;
-        foreach ([self::BASE, '', 'false'] as $base) {
-            $full = 'https://pcm.biolasa.com.br' . ($base === self::BASE ? $base : '');
+        foreach ([[self::BASE, self::BASE], ['', ''], ['false', ''], ['', self::BASE]] as [$base, $publicPath]) {
+            $full = 'https://pcm.biolasa.com.br' . $publicPath;
             $pipes = [];
             $process = proc_open([PHP_BINARY, '-r', $script, $base, $full], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, ROOT,
                 ['SystemRoot' => (string)getenv('SystemRoot'), 'PATH' => (string)getenv('PATH')]);
@@ -123,7 +161,7 @@ PHP;
             $this->assertSame(0, proc_close($process), $error);
             // O PHP local emite um aviso preexistente de OpenSSL antes do JSON.
             $values = json_decode(substr($out, strpos($out, '{')), true, 512, JSON_THROW_ON_ERROR);
-            $expected = $base === self::BASE ? self::BASE : '';
+            $expected = $publicPath;
             $this->assertSame($expected ?: false, $values['baseUrl']);
             $this->assertSame($expected, $values['base']); $this->assertSame($expected . '/', $values['webroot']);
             $this->assertSame('/entrar', $values['path']); $this->assertSame($full . '/entrar', $values['url']);

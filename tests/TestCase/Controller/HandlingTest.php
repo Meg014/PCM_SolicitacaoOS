@@ -130,7 +130,8 @@ class HandlingTest extends TestCase
         $this->assertResponseOk();
         $this->assertResponseContains('aria-describedby="queue-scroll-help"');
         $this->assertResponseContains('Deslize a tabela para os lados');
-        $this->assertResponseContains('class="button secondary"');
+        $this->assertResponseContains('class="request-actions"');
+        $this->assertResponseContains('title="Ver solicitação"');
         $body = (string)$this->_response->getBody();
         $this->assertLessThan(strpos($body, 'SOL-2026-000002'), strpos($body, 'SOL-2026-000001'));
         $this->assertResponseNotContains('Filtrar solicitações');

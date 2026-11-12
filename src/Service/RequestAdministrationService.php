@@ -56,7 +56,8 @@ class RequestAdministrationService
             if ((string)($data['service_action_id'] ?? '') !== (string)$request->service_action_id || (string)($data['service_component_id'] ?? '') !== (string)$request->service_component_id) {
                 $request->patch(ServiceSelection::resolve($data['service_action_id'] ?? null, $data['service_component_id'] ?? null, true));
             }
-            $request->patch(['asset_code' => $asset['code'], 'asset_branch' => $asset['branch'], 'asset_description' => $asset['description']]);
+            // Snapshot obtido do TOTVS; asset_description é protegido contra dados do cliente.
+            $request->patch(['asset_code' => $asset['code'], 'asset_branch' => $asset['branch'], 'asset_description' => $asset['description']], ['guard' => false]);
             $before = $after = [];
             foreach (array_merge($fields, ['flow', 'asset_description', 'description', 'service_action_id', 'service_action_name', 'service_component_id', 'service_component_name', 'service_id', 'service_name']) as $field) {
                 if (($old[$field] ?? null) !== $request->get($field)) {

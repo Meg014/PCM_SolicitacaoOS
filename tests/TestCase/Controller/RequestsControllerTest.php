@@ -32,6 +32,7 @@ class RequestsControllerTest extends TestCase
 
             public function find(string $code, string $branch): ?array
             {
+                if ($code === 'BEM02' && $branch === '02') { return ['code' => $code, 'branch' => $branch, 'description' => 'Motor elétrico']; }
                 return $code === 'BEM01' && $branch === '01'
                     ? ['code' => $code, 'branch' => $branch, 'description' => 'Bomba de água'] : null;
             }
@@ -198,6 +199,33 @@ class RequestsControllerTest extends TestCase
         $audit = TableRegistry::getTableLocator()->get('RequestAudits')->find()->where(['request_id' => $request->id, 'action' => 'REQUEST_UPDATED'])->firstOrFail();
         $this->assertSame('Limpeza geral', $audit->old_values['description']);
         $this->assertSame('Soldar chapa', $audit->new_values['description']);
+    }
+
+    public function testAdministrativeEditChangesVerifiedAssetWithAuditAndPreservesAttachments(): void
+    {
+        $this->session(['Auth' => 1]);
+        $this->submit($this->payload());
+        $original = $this->requests()->find()->orderBy(['id' => 'DESC'])->contain(['RequestItems'])->firstOrFail();
+        $tables = TableRegistry::getTableLocator();
+        $attachments = $tables->get('RequestAttachments');
+        $attachment = $attachments->saveOrFail($attachments->newEntity(['request_id' => $original->id, 'user_id' => 1,
+            'original_name' => 'original.jpg', 'stored_name' => 'original.jpg', 'mime_type' => 'image/jpeg', 'size' => 4, 'created_at' => new \Cake\I18n\DateTime()]));
+        $this->post('/solicitacoes/' . $original->id . '/editar', array_replace($this->payload(), [
+            'asset_code' => 'BEM02', 'asset_branch' => '02', 'asset_label' => 'Motor elétrico (BEM02)', 'asset_description' => 'FORJADO',
+        ]));
+        $this->assertRedirect('/solicitacoes/' . $original->id);
+        $updated = $this->requests()->get($original->id, contain: ['RequestItems', 'RequestAttachments']);
+        $this->assertSame('BEM02', $updated->asset_code);
+        $this->assertSame('02', $updated->asset_branch);
+        $this->assertSame('Motor elétrico', $updated->asset_description);
+        $this->assertSame($original->number, $updated->number);
+        $this->assertEquals($original->request_items, $updated->request_items);
+        $this->assertSame($attachment->id, $updated->request_attachments[0]->id);
+        $audit = $tables->get('RequestAudits')->find()->where(['request_id' => $original->id, 'action' => 'REQUEST_UPDATED'])->firstOrFail();
+        $this->assertSame(['asset_code' => 'BEM01', 'asset_branch' => '01', 'asset_description' => 'Bomba de água'], $audit->old_values);
+        $this->assertSame(['asset_code' => 'BEM02', 'asset_branch' => '02', 'asset_description' => 'Motor elétrico'], $audit->new_values);
+        $this->assertSame(1, $audit->user_id);
+        $this->assertNotNull($audit->created_at);
     }
 
     private function submit(array $data): void

@@ -8,7 +8,7 @@ $text = fn($key) => is_scalar($data[$key] ?? null) ? (string)$data[$key] : '';
 <section class="request-form">
 <h1>Editar solicitação <?= h($request->number) ?></h1>
 <p>As alterações serão registradas na auditoria. Apontamentos e anexos serão preservados.</p>
-<?= $this->Form->create($request, ['id' => 'request-form']) ?>
+<?= $this->Form->create($request, ['id' => 'request-form', 'type' => 'post', 'url' => ['controller' => 'Requests', 'action' => 'edit', $request->id, '_method' => 'POST']]) ?>
 <?= $this->Form->control('unit', ['label' => 'Unidade', 'options' => \App\Domain\Enum\RequestUnit::options(), 'empty' => 'Selecione', 'required' => true]) ?>
 <div class="autocomplete" data-lookup="<?= h($this->Url->build(['controller' => 'Lookups', 'action' => 'assets'])) ?>" data-kind="asset">
 <?= $this->Form->control('asset_label', ['label' => 'Bem / Equipamento', 'value' => $text('asset_label'), 'required' => true, 'autocomplete' => 'off', 'role' => 'combobox', 'aria-autocomplete' => 'list', 'aria-expanded' => 'false', 'aria-controls' => 'asset-results', 'data-search' => true]) ?>

@@ -135,7 +135,11 @@ nav a, .pagination a, td a { min-height: 44px; display: inline-flex; align-items
 .status-counts { grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
 .status-counts dt { font-size: .85rem; }
 .table-scroll { max-width: 100%; overscroll-behavior-x: contain; scrollbar-color: #64748b #182233; }
-.queue-table .button { min-width: 10rem; }
+.request-actions { display: flex; flex-wrap: nowrap; align-items: center; gap: .35rem; }
+.request-action { flex: 0 0 auto; width: auto; display: inline-flex; align-items: center; justify-content: center; gap: .25rem; min-height: 44px; padding: .35rem .5rem; border: 1px solid var(--border); border-radius: .35rem; background: var(--surface); color: var(--text); font-size: .8rem; text-decoration: none; white-space: nowrap; }
+.request-action:hover { background: var(--hover); border-color: var(--muted); }
+.request-action-delete { color: #fca5a5; }
+.request-actions form { margin: 0; }
 .table-scroll-help { display: none; }
 .request-confirmation { max-width: 100%; border-color: #34d399; }
 .request-confirmation h2 { margin-top: 0; }

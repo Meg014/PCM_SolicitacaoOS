@@ -168,6 +168,14 @@ if (is_string($appBaseUrl) && in_array(strtolower(trim($appBaseUrl)), ['', 'fals
     $appBaseUrl = false;
     Configure::write('App.baseUrl', false);
 }
+// Em hospedagens com alias/rewrite, PHP_SELF pode não revelar a subpasta.
+// A URL pública configurada é uma fonte confiável para completar a base ausente.
+if (!$appBaseUrl && !Configure::read('App.base')) {
+    $publicPath = parse_url((string)Configure::read('App.fullBaseUrl'), PHP_URL_PATH);
+    if (is_string($publicPath) && trim($publicPath, '/') !== '') {
+        $appBaseUrl = $publicPath;
+    }
+}
 if (is_string($appBaseUrl) && $appBaseUrl !== '') {
     $appBaseUrl = rtrim('/' . trim($appBaseUrl, '/'), '/');
     Configure::write('App.baseUrl', $appBaseUrl ?: false);
