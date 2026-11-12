@@ -22,7 +22,7 @@ $text = fn($key) => is_scalar($data[$key] ?? null) ? (string)$data[$key] : '';
 <?= $this->Form->control('maintenance_type', ['label' => 'Tipo de manutenção', 'options' => $types, 'empty' => 'Selecione', 'required' => true]) ?>
 <?= $this->element('service_pair', ['pairData' => $data]) ?>
 <?= $this->Form->control('os_disposition', ['id' => 'admin-os-disposition', 'label' => 'Fluxo da O.S.', 'options' => array_column(array_map(fn($choice) => ['value' => $choice->value, 'label' => $choice->label()], \App\Domain\Enum\OsDisposition::cases()), 'label', 'value'), 'empty' => 'Selecione', 'required' => true]) ?>
-<p class="help">O fluxo só pode mudar enquanto aguarda PCM, antes de vincular a O.S. Solicitações com apontamentos devem manter acompanhamento. Equipamentos com O.S. vinculada não podem ser trocados.</p>
+<p class="help">O fluxo só pode mudar enquanto aguarda PCM, antes de vincular a O.S. Solicitações com apontamentos devem manter acompanhamento. Para corrigir o equipamento com O.S. vinculada, o novo Bem deve corresponder ao Bem dessa O.S. no TOTVS.</p>
 <?= $this->Form->button('Salvar alterações') ?>
 <?= $this->Html->link('Voltar à solicitação', ['action' => 'view', $request->id], ['class' => 'button secondary']) ?>
 <?= $this->Form->end() ?>

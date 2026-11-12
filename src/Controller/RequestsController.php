@@ -13,7 +13,7 @@ use Cake\ORM\Exception\PersistenceFailedException;
 
 class RequestsController extends AppController
 {
-    public function edit(string $id, \App\Service\AssetsLookupInterface $assets): mixed
+    public function edit(string $id, \App\Service\AssetsLookupInterface $assets, \App\Service\OrdersLookupInterface $orders): mixed
     {
         $this->request->allowMethod(['get', 'post']);
         $actorId = (int)$this->request->getAttribute('identity')->getIdentifier();
@@ -21,13 +21,13 @@ class RequestsController extends AppController
         $request = $this->fetchTable('ServiceRequests')->get($id);
         if ($this->request->is('post')) {
             try {
-                (new \App\Service\RequestAdministrationService())->edit((int)$id, $actorId, $this->request->getData(), $assets);
+                (new \App\Service\RequestAdministrationService())->edit((int)$id, $actorId, $this->request->getData(), $assets, $orders);
                 $this->Flash->success('Solicitação atualizada.');
                 return $this->redirect(['action' => 'view', $id]);
             } catch (PersistenceFailedException $e) {
                 if ($e->getEntity() instanceof ServiceRequest) { $request = $e->getEntity(); }
                 $this->Flash->error('Revise os campos indicados.');
-            } catch (\InvalidArgumentException | \Cake\Http\Exception\ConflictException | AssetsUnavailableException $e) {
+            } catch (\InvalidArgumentException | \Cake\Http\Exception\ConflictException | AssetsUnavailableException | \App\Service\OrdersUnavailableException $e) {
                 $this->Flash->error($e->getMessage());
             } catch (\PDOException $e) {
                 $this->Flash->error('Não foi possível salvar. Tente novamente.');

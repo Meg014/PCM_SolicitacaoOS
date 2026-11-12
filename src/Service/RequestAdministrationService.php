@@ -17,11 +17,11 @@ class RequestAdministrationService
         }
     }
 
-    public function edit(int $id, int $actorId, array $data, AssetsLookupInterface $assets): void
+    public function edit(int $id, int $actorId, array $data, AssetsLookupInterface $assets, ?OrdersLookupInterface $orders = null): void
     {
         $tables = TableRegistry::getTableLocator();
         $requests = $tables->get('ServiceRequests');
-        $requests->getConnection()->transactional(function () use ($id, $actorId, $data, $assets, $tables, $requests): void {
+        $requests->getConnection()->transactional(function () use ($id, $actorId, $data, $assets, $orders, $tables, $requests): void {
             self::authorize($actorId);
             $this->lock($requests, $id);
             $request = $requests->get($id);
@@ -34,8 +34,23 @@ class RequestAdministrationService
                 throw new \InvalidArgumentException('Selecione um Bem/Equipamento válido da lista.');
             }
             $changedAsset = $old['asset_code'] !== $asset['code'] || $old['asset_branch'] !== $asset['branch'];
-            if (trim((string)$request->totvs_os_number) !== '' && $changedAsset) {
-                throw new ConflictException('Não é possível trocar o equipamento de uma solicitação com O.S. vinculada.');
+            $osNumber = trim((string)$request->totvs_os_number);
+            $validation = null;
+            if ($osNumber !== '' && $changedAsset) {
+                // Consulta por número, sem usar o Bem antigo incorreto como filtro.
+                $rows = ($orders ?? new TotvsOrdersService())->batch([$osNumber]);
+                $osBranch = trim((string)$request->totvs_os_branch);
+                $matches = array_values(array_filter($rows, fn($row) => ($row['number'] ?? null) === $osNumber &&
+                    ($osBranch === '' || ($row['branch'] ?? null) === $osBranch)));
+                if (count($matches) !== 1 || !is_string($matches[0]['branch'] ?? null)) {
+                    throw new ConflictException('Não foi possível validar a O.S. ' . $osNumber . ' no TOTVS: não encontrada ou ambígua.');
+                }
+                $order = $matches[0];
+                if (($order['asset_code'] ?? null) !== $asset['code'] || ($asset['branch'] !== '' && $order['branch'] !== $asset['branch'])) {
+                    throw new ConflictException('O Bem selecionado não corresponde ao Bem da O.S. ' . $osNumber . ' no TOTVS.');
+                }
+                $validation = ['totvs_os_number' => $request->totvs_os_number, 'totvs_asset_match' => true,
+                    'totvs_order' => ['number' => $order['number'], 'branch' => $order['branch'], 'asset_code' => $order['asset_code']]];
             }
             if ($request->os_disposition !== $old['os_disposition']) {
                 if (trim((string)$request->totvs_os_number) !== '' || !in_array($request->status, [RequestStatus::AGUARDANDO_PCM->value, RequestStatus::EM_ANALISE->value], true)) {
@@ -66,10 +81,19 @@ class RequestAdministrationService
                 }
             }
             if (!$after) { return; }
+            if ($validation !== null) {
+                foreach (['asset_code', 'asset_branch', 'asset_description'] as $field) {
+                    $before[$field] = $old[$field];
+                    $after[$field] = $request->get($field);
+                }
+                $before['totvs_os_number'] = $request->totvs_os_number;
+                $after += $validation;
+            }
             $requests->saveOrFail($request);
             $audits = $tables->get('RequestAudits');
             $audits->saveOrFail($audits->newEntity(['request_id' => $id, 'user_id' => $actorId, 'action' => 'REQUEST_UPDATED',
-                'old_values' => $before, 'new_values' => $after, 'created_at' => new \Cake\I18n\DateTime('now', 'UTC')]));
+                'old_values' => $before, 'new_values' => $after,
+                'created_at' => new \Cake\I18n\DateTime('now', 'UTC')]));
         });
     }
 

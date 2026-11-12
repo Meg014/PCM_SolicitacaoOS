@@ -32,6 +32,7 @@ class RequestsControllerTest extends TestCase
 
             public function find(string $code, string $branch): ?array
             {
+                if ($code === 'FAB 80 158' && $branch === '01') { return ['code' => $code, 'branch' => $branch, 'description' => 'Equipamento da fábrica']; }
                 if ($code === 'BEM02' && $branch === '02') { return ['code' => $code, 'branch' => $branch, 'description' => 'Motor elétrico']; }
                 return $code === 'BEM01' && $branch === '01'
                     ? ['code' => $code, 'branch' => $branch, 'description' => 'Bomba de água'] : null;
@@ -226,6 +227,106 @@ class RequestsControllerTest extends TestCase
         $this->assertSame(['asset_code' => 'BEM02', 'asset_branch' => '02', 'asset_description' => 'Motor elétrico'], $audit->new_values);
         $this->assertSame(1, $audit->user_id);
         $this->assertNotNull($audit->created_at);
+    }
+
+    private function linkedAssetCorrection(): array
+    {
+        $this->session(['Auth' => 1]);
+        $this->submit($this->payload());
+        $request = $this->requests()->find()->orderBy(['id' => 'DESC'])->firstOrFail();
+        $this->requests()->updateAll(['totvs_os_number' => '007404', 'status' => RequestStatus::EM_EXECUCAO->value], ['id' => $request->id]);
+        return [$request->id, array_replace($this->payload(), ['asset_code' => 'FAB 80 158', 'asset_branch' => '01',
+            'asset_label' => 'Equipamento da fábrica (FAB 80 158)', 'totvs_os_number' => 'FORJADA'])];
+    }
+
+    private function mockCorrectionOrder(array $rows): void
+    {
+        $orders = $this->createMock(\App\Service\OrdersLookupInterface::class);
+        $orders->expects($this->once())->method('batch')->with(['007404'])->willReturn($rows);
+        $orders->expects($this->never())->method('find');
+        $this->mockService(\App\Service\OrdersLookupInterface::class, fn() => $orders);
+    }
+
+    public function testAdministrativeLinkedAssetCorrectionMatchesTotvsAndAuditsWithoutChangingOtherData(): void
+    {
+        [$id, $data] = $this->linkedAssetCorrection();
+        $attachments = TableRegistry::getTableLocator()->get('RequestAttachments');
+        $attachments->saveOrFail($attachments->newEntity(['request_id' => $id, 'user_id' => 1, 'original_name' => 'original.jpg',
+            'stored_name' => 'original.jpg', 'mime_type' => 'image/jpeg', 'size' => 4, 'created_at' => new \Cake\I18n\DateTime()]));
+        $before = $this->requests()->get($id, contain: ['RequestItems', 'RequestAttachments'])->toArray();
+        $this->mockCorrectionOrder([['number' => '007404', 'branch' => '01', 'asset_code' => 'FAB 80 158']]);
+        $this->post('/solicitacoes/' . $id . '/editar', $data);
+        $this->assertRedirect('/solicitacoes/' . $id);
+        $after = $this->requests()->get($id, contain: ['RequestItems', 'RequestAttachments'])->toArray();
+        $this->assertSame('FAB 80 158', $after['asset_code']);
+        $this->assertSame('Equipamento da fábrica', $after['asset_description']);
+        $this->assertSame('007404', $after['totvs_os_number']);
+        $excluded = array_flip(['asset_code', 'asset_branch', 'asset_description', 'updated_at']);
+        $this->assertEquals(array_diff_key($before, $excluded), array_diff_key($after, $excluded));
+        $audit = TableRegistry::getTableLocator()->get('RequestAudits')->find()->where(['request_id' => $id, 'action' => 'REQUEST_UPDATED'])->firstOrFail();
+        $this->assertSame(1, $audit->user_id);
+        $this->assertSame('ADMIN_PCM', $audit->actor_snapshot['role']);
+        $this->assertNotNull($audit->created_at);
+        $this->assertSame('BEM01', $audit->old_values['asset_code']);
+        $this->assertSame('FAB 80 158', $audit->new_values['asset_code']);
+        $this->assertSame('007404', $audit->old_values['totvs_os_number']);
+        $this->assertSame('007404', $audit->new_values['totvs_os_number']);
+        $this->assertTrue($audit->new_values['totvs_asset_match']);
+        $this->assertEquals(['number' => '007404', 'branch' => '01', 'asset_code' => 'FAB 80 158'], $audit->new_values['totvs_order']);
+    }
+
+    public function testAdministrativeLinkedAssetCorrectionBlocksDifferentAsset(): void
+    {
+        [$id, $data] = $this->linkedAssetCorrection();
+        $before = $this->requests()->get($id)->toArray();
+        $this->mockCorrectionOrder([['number' => '007404', 'branch' => '01', 'asset_code' => 'OUTRO BEM']]);
+        $this->post('/solicitacoes/' . $id . '/editar', $data);
+        $this->assertResponseOk();
+        $this->assertResponseContains('O Bem selecionado não corresponde ao Bem da O.S. 007404 no TOTVS.');
+        $this->assertEquals($before, $this->requests()->get($id)->toArray());
+        $this->assertSame(0, TableRegistry::getTableLocator()->get('RequestAudits')->find()->where(['request_id' => $id, 'action' => 'REQUEST_UPDATED'])->count());
+    }
+
+    public function testAdministrativeLinkedAssetCorrectionBlocksMissingAmbiguousOrWrongBranchOrder(): void
+    {
+        [$id, $data] = $this->linkedAssetCorrection();
+        $before = $this->requests()->get($id)->toArray();
+        $order = ['number' => '007404', 'branch' => '01', 'asset_code' => 'FAB 80 158'];
+        foreach ([[], [$order, $order], [array_replace($order, ['branch' => '02'])]] as $rows) {
+            $this->mockCorrectionOrder($rows);
+            $this->post('/solicitacoes/' . $id . '/editar', $data);
+            $this->assertResponseOk();
+            $this->assertEquals($before, $this->requests()->get($id)->toArray());
+        }
+    }
+
+    public function testAdministrativeLinkedAssetCorrectionBlocksUnavailableTotvs(): void
+    {
+        [$id, $data] = $this->linkedAssetCorrection();
+        $before = $this->requests()->get($id)->toArray();
+        $orders = $this->createMock(\App\Service\OrdersLookupInterface::class);
+        $orders->expects($this->once())->method('batch')->with(['007404'])->willThrowException(new \App\Service\OrdersUnavailableException());
+        $this->mockService(\App\Service\OrdersLookupInterface::class, fn() => $orders);
+        $this->post('/solicitacoes/' . $id . '/editar', $data);
+        $this->assertResponseOk();
+        $this->assertResponseContains('Não foi possível consultar a Ordem de Serviço no TOTVS agora.');
+        $this->assertEquals($before, $this->requests()->get($id)->toArray());
+    }
+
+    public function testAdministrativeLinkedAssetCorrectionRejectsNonAdminBeforeTotvsLookup(): void
+    {
+        [$id, $data] = $this->linkedAssetCorrection();
+        $orders = $this->createMock(\App\Service\OrdersLookupInterface::class);
+        $orders->expects($this->never())->method('batch');
+        $this->mockService(\App\Service\OrdersLookupInterface::class, fn() => $orders);
+        foreach ([2, 3] as $actorId) {
+            $this->session(['Auth' => $actorId]);
+            $this->post('/solicitacoes/' . $id . '/editar', $data);
+            $this->assertResponseCode(403);
+        }
+        $request = $this->requests()->get($id);
+        $this->assertSame('BEM01', $request->asset_code);
+        $this->assertSame('007404', $request->totvs_os_number);
     }
 
     private function submit(array $data): void

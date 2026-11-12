@@ -301,3 +301,10 @@ Formato:
 - Ao trocar Bem validado, gravar também a descrição retornada pelo TOTVS em campo protegido contra dados do cliente. Preservadas as restrições existentes para O.S. vinculada, auditoria e dependentes.
 - Ações da fila compactas, lado a lado, com texto, ícone e title, usando as cores do tema escuro e mantendo área de toque mínima de 44 px.
 - Validação: 47 testes de subdiretório/solicitações aprovados no conjunto de regressão; 10 testes de tratamento aprovados após ajustar a expectativa visual dos botões. Cobertura inclui URLs e redirects no prefixo, POST do formulário, permissões, troca de Bem com auditoria, preservação de apontamentos/anexos e exclusão com remoção física. Sintaxe PHP e git diff --check aprovados.
+
+## 2026-11-12 — Correção administrativa do Bem com O.S. vinculada
+- Substitui o bloqueio anterior: ADMIN_PCM pode corrigir código/filial do Bem com O.S. vinculada somente após selecionar um Bem válido do TOTVS e confirmar sua correspondência com a O.S. por consulta somente leitura.
+- Consultar pelo número já persistido, sem filtrar pelo Bem antigo incorreto. Respeitar filial da O.S. quando conhecida; sem filial conhecida, exigir resultado único. Bem deve corresponder ao código e à filial selecionados (filial vazia de Bem compartilhado é aceita). O.S. ausente, ambígua ou TOTVS indisponível bloqueiam a gravação.
+- REQUEST_UPDATED guarda administrador, data UTC, snapshots completos do Bem anterior/novo, número da O.S. anterior/novo preservado, totvs_asset_match=true e identidade da O.S. consultada em new_values. Sem migration: reutiliza JSONB da auditoria existente.
+- Preservados apontamentos, anexos, número interno, vínculo e demais dados; regras de fluxo e exclusão permanecem vigentes.
+- Validação: 52 testes de solicitações e subdiretório aprovados (443 verificações), incluindo cinco novos cenários de correção com O.S. vinculada; sintaxe PHP e git diff --check aprovados. Consultas TOTVS simuladas nos testes, sem escrita externa.
