@@ -18,6 +18,7 @@ $role = $identity ? $identity->get('role') : null;
     <meta name="session-activity-url" content="<?= h($this->Url->build(['controller' => 'Home', 'action' => 'activity', '_method' => 'POST'])) ?>">
     <meta name="csrf-token" content="<?= h($this->getRequest()->getAttribute('csrfToken')) ?>">
     <?= $this->Html->script('session-activity', ['defer' => true]) ?>
+    <?= $this->Html->script('request-actions', ['defer' => true]) ?>
     <?php endif; ?>
     <?= $this->fetch('meta') ?>
     <?= $this->fetch('css') ?>

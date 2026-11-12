@@ -24,6 +24,7 @@
     <p class="help"><?= h($request->created_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')) ?></p>
     <p class="help">Tempo de atendimento: <?= h($request->attendanceDuration()) ?></p>
     <?php if ($request->totvs_os_number): ?><p>O.S. TOTVS: <?= h($request->totvs_os_number) ?></p><?php endif; ?>
+    <?= $this->element('request_actions', ['request' => $request]) ?>
 </article>
 <?php endforeach; ?>
 </div>

@@ -37,7 +37,7 @@ class RequestHandlingService
                 }
                 // Serializa vínculos concorrentes do mesmo número; o índice também protege gravações diretas.
                 $requests->getConnection()->execute('SELECT pg_advisory_xact_lock(hashtextextended(:os, 0))', ['os' => 'os:' . trim($value)]);
-                $existing = $requests->find()->where(['ServiceRequests.id !=' => $id])
+                $existing = $requests->find('withDeleted')->where(['ServiceRequests.id !=' => $id])
                     ->where(['btrim(ServiceRequests.totvs_os_number)' => trim($value)])->first();
                 if ($existing) { throw new ConflictException('Esta O.S. já está vinculada à solicitação ' . $existing->number . '.'); }
                 $state = match ($request->os_disposition) {

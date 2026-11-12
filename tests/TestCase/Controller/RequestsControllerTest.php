@@ -59,6 +59,9 @@ class RequestsControllerTest extends TestCase
     {
         foreach ([2, 3] as $id) {
             $this->session(['Auth' => $id]);
+            $this->get('/solicitacoes/1');
+            $this->assertResponseNotContains('title="Excluir solicitação"');
+            $this->assertResponseNotContains('title="Editar solicitação"');
             $this->get('/solicitacoes/1/editar');
             $this->assertResponseCode(403);
             $this->enableCsrfToken('pcm_solicitacao_os_csrf');
@@ -109,7 +112,7 @@ class RequestsControllerTest extends TestCase
         $this->assertSame('OS123', $this->requests()->get($original->id)->totvs_os_number);
     }
 
-    public function testAdministrativeDeleteRemovesChildrenAndPhysicalAttachments(): void
+    public function testAdministrativeDeletePreservesChildrenAndPhysicalAttachments(): void
     {
         $this->session(['Auth' => 1]);
         $this->submit($this->payload());
@@ -123,15 +126,18 @@ class RequestsControllerTest extends TestCase
             $attachments = $tables->get('RequestAttachments');
             $attachments->saveOrFail($attachments->newEntity(['request_id' => $request->id, 'user_id' => 1, 'original_name' => 'test.jpg', 'stored_name' => 'test.jpg', 'mime_type' => 'image/jpeg', 'size' => 4, 'created_at' => new \Cake\I18n\DateTime()]));
             $this->get('/solicitacoes/' . $request->id);
-            $this->assertResponseContains('Tem certeza que deseja excluir definitivamente');
+            $this->assertResponseContains('Excluir solicitação?');
+            $this->assertResponseContains('Confirmar exclusão');
             $this->get('/solicitacoes/' . $request->id . '/excluir');
             $this->assertResponseCode(404);
             $this->post('/solicitacoes/' . $request->id . '/excluir');
-            $this->assertResponseCode(302);
+            $this->assertRedirect('/painel');
+            $this->assertContains('deleted_at', $this->requests()->getSchema()->columns());
+            $this->assertNotNull($this->requests()->get($request->id, finder: 'withDeleted')->deleted_at);
             $this->assertFalse($this->requests()->exists(['id' => $request->id]));
-            foreach (['RequestItems', 'RequestAttachments', 'RequestAudits'] as $table) { $this->assertSame(0, $tables->get($table)->find()->where(['request_id' => $request->id])->count()); }
-            $this->assertFileDoesNotExist($root . DS . 'test.jpg');
-            $this->assertSame([], array_values(array_diff(scandir($root), ['.', '..'])));
+            foreach (['RequestItems', 'RequestAttachments', 'RequestAudits'] as $table) { $this->assertGreaterThan(0, $tables->get($table)->find()->where(['request_id' => $request->id])->count()); }
+            $this->assertFileExists($root . DS . 'test.jpg');
+            $this->assertSame(['test.jpg'], array_values(array_diff(scandir($root), ['.', '..'])));
             $this->assertTrue($this->requests()->exists(['id' => 1]));
         } finally {
             foreach (glob($root . DS . '*') as $path) { unlink($path); }
@@ -140,16 +146,39 @@ class RequestsControllerTest extends TestCase
         }
     }
 
-    public function testAdministrativeDeleteBlocksLinkedOrder(): void
+    public function testAdministrativeDeleteAllowsEveryStatusAndKeepsLinkedOrderAndAudit(): void
     {
         $this->session(['Auth' => 1]);
-        $this->requests()->updateAll(['totvs_os_number' => 'OS123'], ['id' => 1]);
         $this->enableCsrfToken('pcm_solicitacao_os_csrf');
-        $this->post('/solicitacoes/1/excluir');
-        $this->assertRedirect('/solicitacoes/1');
-        $this->assertSame('OS123', $this->requests()->get(1)->totvs_os_number);
+        foreach (RequestStatus::cases() as $status) {
+            $this->requests()->updateAll(['status' => $status->value, 'totvs_os_number' => 'OS123', 'deleted_at' => null], ['id' => 1]);
+            $this->get('/solicitacoes/1');
+            $this->assertResponseOk();
+            $this->assertResponseContains('title="Excluir solicitação"');
+            $this->post('/solicitacoes/1/excluir', ['reason' => 'Registro de teste']);
+            $this->assertRedirect('/painel');
+            $this->assertFalse($this->requests()->exists(['id' => 1]));
+            $record = $this->requests()->get(1, finder: 'withDeleted');
+            $this->assertSame('OS123', $record->totvs_os_number);
+            $this->assertSame($status->value, $record->status);
+            $this->assertSame(1, $record->deleted_by);
+            $this->assertSame('Registro de teste', $record->deletion_reason);
+            $this->assertNotNull($record->deleted_at);
+        }
+        $audits = TableRegistry::getTableLocator()->get('RequestAudits')->find()->where(['request_id' => 1, 'action' => 'REQUEST_DELETED'])->all();
+        $this->assertCount(count(RequestStatus::cases()), $audits);
+        $this->assertSame('ADMIN_PCM', $audits->first()->actor_snapshot['role']);
+        $this->assertSame('Registro de teste', $audits->first()->new_values['reason']);
+        $this->get('/relatorios');
+        $this->assertResponseNotContains('SOL-2026-000001');
+        $report = new \App\Service\RequestReportService();
+        $this->assertSame(0, $report->query(['totvs_os_number' => 'OS123'])->count());
+        $this->assertSame(1, $report->indicators([])['total']);
+        $this->get('/painel');
+        $this->assertResponseNotContains('SOL-2026-000001');
+        $this->get('/solicitacoes/1');
+        $this->assertResponseCode(404);
     }
-
     public function testAdministrativeEditAuditFailureRollsBackChanges(): void
     {
         $this->session(['Auth' => 1]);

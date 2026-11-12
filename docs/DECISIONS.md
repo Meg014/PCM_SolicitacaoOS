@@ -308,3 +308,10 @@ Formato:
 - REQUEST_UPDATED guarda administrador, data UTC, snapshots completos do Bem anterior/novo, número da O.S. anterior/novo preservado, totvs_asset_match=true e identidade da O.S. consultada em new_values. Sem migration: reutiliza JSONB da auditoria existente.
 - Preservados apontamentos, anexos, número interno, vínculo e demais dados; regras de fluxo e exclusão permanecem vigentes.
 - Validação: 52 testes de solicitações e subdiretório aprovados (443 verificações), incluindo cinco novos cenários de correção com O.S. vinculada; sintaxe PHP e git diff --check aprovados. Consultas TOTVS simuladas nos testes, sem escrita externa.
+
+## 2026-11-12 — Ações visuais e exclusão lógica administrativa
+- Exclusão passa a ser lógica e exclusiva de ADMIN_PCM em todos os estados, inclusive com O.S. vinculada. Substitui a exclusão física anteriormente implementada: filhos, anexos físicos, vínculo TOTVS e auditorias são preservados.
+- deleted_at/deleted_by/deletion_reason e evento REQUEST_DELETED registram data UTC, administrador e motivo. Motivo opcional no modal: vazio usa "Limpeza administrativa de registros de teste". Não há escrita no TOTVS nem mudança do status operacional.
+- beforeFind de ServiceRequests omite excluídas das consultas operacionais, contadores, relatórios, indicadores, alertas e sincronização. Finder interno withDeleted mantém acesso da auditoria e unicidade histórica da O.S.; fotos de excluídas deixam de ser servidas pelo endpoint normal.
+- Elemento request_actions reutilizado na fila, listas, relatórios e detalhes. Lucide 0.468.0 (Eye/Pencil/Trash2) em SVG oficial, com licença em templates/element/icons/LICENSE: o projeto CakePHP não possui React/shadcn. Modal nativo dialog com foco/Escape, cancelamento e formulário POST/CSRF; script delegado suporta atualização da fila sem recarregar a página. URLs continuam geradas pelo CakePHP.
+- Migration aplicada no banco configurado e caches de schema default/test limpos. Validação restrita: 4 testes pontuais, 138 verificações aprovadas (permissões/UI, todos os estados, preservação física e auditoria, listagens/indicadores e subdiretório). Sem suíte extensa.

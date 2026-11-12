@@ -52,10 +52,10 @@ class RequestsController extends AppController
         $actorId = (int)$this->request->getAttribute('identity')->getIdentifier();
         \App\Service\RequestAdministrationService::authorize($actorId);
         try {
-            (new \App\Service\RequestAdministrationService())->delete((int)$id, $actorId);
-            $this->Flash->success('Solicitação excluída definitivamente.');
+            (new \App\Service\RequestAdministrationService())->delete((int)$id, $actorId, $this->request->getData('reason'));
+            $this->Flash->success('Solicitação excluída das listagens e relatórios. O histórico foi preservado.');
             return $this->redirect(['controller' => 'Dashboard', 'action' => 'index']);
-        } catch (\Cake\Http\Exception\ConflictException | \RuntimeException $e) {
+        } catch (\InvalidArgumentException | \Cake\Http\Exception\ConflictException | \RuntimeException $e) {
             $this->Flash->error($e->getMessage());
         }
         return $this->redirect(['action' => 'view', $id]);

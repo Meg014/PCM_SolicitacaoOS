@@ -9,7 +9,7 @@
 <p class="help">Solicitante: <?= h($request->user->name) ?> · <?= h($request->created_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')) ?> · Tempo de atendimento: <?= h($request->attendanceDuration()) ?></p>
 <p><?= h(\App\Domain\Enum\RequestStatus::from($request->status)->label()) ?><?= $request->totvs_os_number ? ' · O.S. ' . h($request->totvs_os_number) : '' ?></p>
 <?= $this->element('request_activity', ['request' => $request]) ?><p class="preserve-lines"><?= h($request->description) ?></p>
-<?php if (\App\Service\RequestAccess::canAppend($request)): ?><?= $this->Html->link('Fazer apontamento nesta O.S.', ['action' => 'addItem', $request->id], ['class' => 'button']) ?><?php endif; ?><?= $this->Html->link('Ver acompanhamento', ['action' => 'view', $request->id], ['class' => 'button secondary']) ?>
+<?php if (\App\Service\RequestAccess::canAppend($request)): ?><?= $this->Html->link('Fazer apontamento nesta O.S.', ['action' => 'addItem', $request->id], ['class' => 'button']) ?><?php endif; ?><?= $this->element('request_actions', ['request' => $request]) ?>
 </article>
 <?php endforeach; ?>
 <?= $this->element('pagination') ?>

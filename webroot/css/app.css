@@ -135,11 +135,24 @@ nav a, .pagination a, td a { min-height: 44px; display: inline-flex; align-items
 .status-counts { grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
 .status-counts dt { font-size: .85rem; }
 .table-scroll { max-width: 100%; overscroll-behavior-x: contain; scrollbar-color: #64748b #182233; }
-.request-actions { display: flex; flex-wrap: nowrap; align-items: center; gap: .35rem; }
-.request-action { flex: 0 0 auto; width: auto; display: inline-flex; align-items: center; justify-content: center; gap: .25rem; min-height: 44px; padding: .35rem .5rem; border: 1px solid var(--border); border-radius: .35rem; background: var(--surface); color: var(--text); font-size: .8rem; text-decoration: none; white-space: nowrap; }
-.request-action:hover { background: var(--hover); border-color: var(--muted); }
-.request-action-delete { color: #fca5a5; }
-.request-actions form { margin: 0; }
+.request-actions { display: flex; flex-wrap: nowrap; align-items: center; gap: .55rem; padding-block: .25rem; }
+.request-actions .request-action { flex: 0 0 auto; width: auto; display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 42px; margin: 0; padding: .55rem .8rem; border: 1px solid #475569; border-radius: .6rem; background: var(--surface); color: var(--text); font-size: .85rem; font-weight: 600; line-height: 1.25; text-decoration: none; white-space: nowrap; transition: background-color .16s ease, border-color .16s ease, color .16s ease; }
+.request-actions .request-action svg { width: 17px; height: 17px; flex-shrink: 0; }
+.request-actions .request-action-view { background: transparent; color: #cbd5e1; }
+.request-actions .request-action-edit { background: #334155; border-color: #475569; color: #f8fafc; }
+.request-actions .request-action-delete { background: #401f29; border-color: #743443; color: #fecaca; }
+.request-actions .request-action:hover { background: #35465e; border-color: #94a3b8; color: #fff; }
+.request-actions .request-action-delete:hover { background: #672635; border-color: #f87171; color: #fff; }
+.request-detail-actions { margin: .8rem 0 1.3rem; }
+.status + .request-actions, .request-list .request-actions { margin-top: .85rem; }
+.request-delete-dialog { width: min(34rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); padding: 1.5rem; border: 1px solid var(--border); border-radius: .9rem; background: var(--surface); color: var(--text); box-shadow: 0 20px 60px #0006; }
+.request-delete-dialog::backdrop { background: #020617bf; }
+.request-delete-dialog h2 { margin: 0 0 .8rem; font-size: 1.3rem; }
+.request-delete-dialog p { white-space: normal; }
+.request-delete-dialog form { margin-bottom: 0; }
+.request-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .65rem; margin-top: 1.25rem; }
+@media (max-width: 650px) { .request-actions { flex-wrap: wrap; } .request-actions .request-action { min-height: 44px; } .request-delete-dialog { padding: 1.1rem; } }
+@media (prefers-reduced-motion: reduce) { .request-actions .request-action { transition: none; } }
 .table-scroll-help { display: none; }
 .request-confirmation { max-width: 100%; border-color: #34d399; }
 .request-confirmation h2 { margin-top: 0; }

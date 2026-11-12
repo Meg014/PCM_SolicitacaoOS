@@ -45,6 +45,19 @@ class ServiceRequestsTable extends Table
             ->add('description', 'notBlank', ['rule' => fn($value) => trim($value) !== '', 'message' => 'Descreva o serviço ou problema.']);
     }
 
+    public function beforeFind(\Cake\Event\EventInterface $event, \Cake\ORM\Query\SelectQuery $query, \ArrayObject $options, bool $primary): void
+    {
+        if (!($query->getOptions()['withDeleted'] ?? false)) {
+            $query->where([$this->aliasField('deleted_at') . ' IS' => null]);
+        }
+    }
+
+    // Uso interno para auditoria e preservação da unicidade de vínculos históricos.
+    public function findWithDeleted(\Cake\ORM\Query\SelectQuery $query): \Cake\ORM\Query\SelectQuery
+    {
+        return $query->applyOptions(['withDeleted' => true]);
+    }
+
     public function buildRules(RulesChecker $rules): RulesChecker
     {
         $rules->add($rules->existsIn(['user_id'], 'Users'));
@@ -52,7 +65,7 @@ class ServiceRequestsTable extends Table
         $rules->add(function ($entity): bool {
             $number = trim((string)$entity->totvs_os_number);
             if ($number === '') { return true; }
-            $query = $this->find()->where(['btrim(ServiceRequests.totvs_os_number)' => $number]);
+            $query = $this->find('withDeleted')->where(['btrim(ServiceRequests.totvs_os_number)' => $number]);
             if ($entity->id) { $query->where(['ServiceRequests.id !=' => $entity->id]); }
             return $query->count() === 0;
         }, 'uniqueTotvsOs', ['errorField' => 'totvs_os_number', 'message' => 'Esta O.S. já está vinculada a outra solicitação.']);

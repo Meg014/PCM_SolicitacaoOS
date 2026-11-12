@@ -97,39 +97,30 @@ class RequestAdministrationService
         });
     }
 
-    public function delete(int $id, int $actorId): void
+    public function delete(int $id, int $actorId, mixed $reason = null): void
     {
+        self::authorize($actorId);
+        if ($reason !== null && (!is_string($reason) || mb_strlen($reason) > 2000)) {
+            throw new \InvalidArgumentException('Use até 2.000 caracteres para informar o motivo da exclusão.');
+        }
+        $reason = trim($reason ?? '') ?: 'Limpeza administrativa de registros de teste';
         $tables = TableRegistry::getTableLocator();
         $requests = $tables->get('ServiceRequests');
-        // Stage files reversibly; failed database deletion restores the original names.
-        $staged = [];
-        try {
-            $requests->getConnection()->transactional(function () use ($id, $actorId, $tables, $requests, &$staged): void {
-                self::authorize($actorId);
-                $this->lock($requests, $id);
-                $request = $requests->get($id);
-                if (trim((string)$request->totvs_os_number) !== '') { throw new ConflictException('Não é possível excluir uma solicitação com O.S. TOTVS vinculada.'); }
-                foreach ($tables->get('RequestAttachments')->find()->where(['request_id' => $id]) as $attachment) {
-                    $name = $attachment->stored_name;
-                    if (basename($name) !== $name || str_contains($name, '\\')) { throw new \RuntimeException('Caminho de anexo inválido.'); }
-                    $path = AttachmentService::root() . DIRECTORY_SEPARATOR . $name;
-                    if (!file_exists($path)) { continue; }
-                    $temporary = $path . '.deleting-' . bin2hex(random_bytes(8));
-                    if (!rename($path, $temporary)) { throw new \RuntimeException('Não foi possível remover os anexos.'); }
-                    $staged[$path] = $temporary;
-                }
-                foreach (['RequestAttachments', 'RequestItems', 'RequestAudits'] as $child) { $tables->get($child)->deleteAll(['request_id' => $id]); }
-                $requests->deleteOrFail($request);
-            });
-        } catch (\Throwable $e) {
-            foreach ($staged as $path => $temporary) { rename($temporary, $path); }
-            throw $e;
-        }
-        foreach ($staged as $temporary) {
-            if (!unlink($temporary)) { throw new \RuntimeException('Registro excluído, mas não foi possível remover um arquivo físico. Contate o suporte.'); }
-        }
+        $requests->getConnection()->transactional(function () use ($id, $actorId, $reason, $tables, $requests): void {
+            self::authorize($actorId);
+            $this->lock($requests, $id);
+            $request = $requests->get($id);
+            $now = new \Cake\I18n\DateTime('now', 'UTC');
+            $request->patch(['deleted_at' => $now, 'deleted_by' => $actorId, 'deletion_reason' => $reason], ['guard' => false]);
+            $requests->saveOrFail($request);
+            $audits = $tables->get('RequestAudits');
+            $audits->saveOrFail($audits->newEntity(['request_id' => $id, 'user_id' => $actorId, 'action' => 'REQUEST_DELETED',
+                'old_values' => ['deleted_at' => null, 'status' => $request->status],
+                'new_values' => ['deleted_at' => $now->format(DATE_ATOM), 'deleted_by' => $actorId, 'reason' => $reason,
+                    'number' => $request->number, 'status' => $request->status, 'totvs_os_number' => $request->totvs_os_number],
+                'created_at' => $now]));
+        });
     }
-
     private function lock(\Cake\ORM\Table $requests, int $id): void
     {
         if (!$requests->getConnection()->execute('SELECT id FROM service_requests WHERE id = :id FOR UPDATE', ['id' => $id])->fetch('assoc')) {
