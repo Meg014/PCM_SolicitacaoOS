@@ -59,6 +59,8 @@ require CAKE . 'functions.php';
     'DB_PASSWORD' => '[oculto]', 'TEST_DB_PASSWORD' => '[oculto]',
     'PROTHEUS_DB_PASSWORD' => '[oculto]', 'ADMIN_SEED_PASSWORD' => '[oculto]',
     'BOOTSTRAP_ADMIN_PASSWORD' => '[oculto]',
+    'PCM_SSO_CLIENT_SECRET' => '[oculto]', 'PCM_CENTRAL_INTEGRATION_SECRET' => '[oculto]',
+    'clientSecret' => '[oculto]', 'integrationSecret' => '[oculto]',
 ]);
 
 /*
@@ -264,3 +266,4 @@ ServerRequest::addDetector('tablet', function ($request) {
 // and https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax
 // \Cake\I18n\Date::setToStringFormat('dd.MM.yyyy');
 // \Cake\I18n\Time::setToStringFormat('dd.MM.yyyy HH:mm');
+\Cake\Core\Configure::load('sso');

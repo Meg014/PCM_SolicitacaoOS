@@ -34,6 +34,18 @@ class AppController extends Controller
         $identity = $this->request->getAttribute('identity');
         $controller = $this->request->getParam('controller');
         $action = $this->request->getParam('action');
+        $sso = $this->request->getSession()->read('Sso');
+        if ($sso && !($controller === 'Home' && $action === 'logout')) {
+            if (!$identity || !(new \App\Service\SsoSessionGuard())->valid($sso, (int)$identity->getIdentifier())) {
+                \App\Service\SsoAudit::record('SSO_SESSION_DENIED', $identity ? (int)$identity->getIdentifier() : null);
+                $this->Authentication->logout();
+                $this->request->getSession()->delete('Sso');
+                $event->setResult($this->response->withStatus(403)->withType('text/plain')->withHeader('Cache-Control', 'no-store')
+                    ->withStringBody('Acesso não autorizado. Solicite acesso pela Central de Sistemas PCM ou tente novamente quando o serviço estiver disponível.'));
+                $event->stopPropagation();
+                return;
+            }
+        }
         $allowed = ($controller === 'Profile' && $action === 'password') || ($controller === 'Home' && in_array($action, ['login', 'logout', 'activity'], true));
         if ($identity && $identity->get('must_change_password') && !$allowed) {
             $event->setResult($this->redirect(['controller' => 'Profile', 'action' => 'password']));

@@ -9,8 +9,11 @@ return function (RouteBuilder $routes): void {
     $routes->setRouteClass(DashedRoute::class);
     $routes->scope('/', function (RouteBuilder $builder): void {
         $builder->connect('/', ['controller' => 'Home', 'action' => 'index']);
+        $builder->connect('/sso', ['controller' => 'Sso', 'action' => 'login'])->setMethods(['GET']);
+        $builder->connect('/sso/callback', ['controller' => 'Sso', 'action' => 'callback'])->setMethods(['GET']);
         $builder->connect('/entrar', ['controller' => 'Home', 'action' => 'login'])->setMethods(['GET', 'POST']);
         $builder->connect('/sair', ['controller' => 'Home', 'action' => 'logout'])->setMethods(['POST']);
+        $builder->connect('/sair-de-todos', ['controller' => 'Home', 'action' => 'logout', 'globalLogout' => true])->setMethods(['POST']);
         $builder->connect('/sessao/atividade', ['controller' => 'Home', 'action' => 'activity'])->setMethods(['POST']);
         $builder->connect('/painel', ['controller' => 'Dashboard', 'action' => 'index'])->setMethods(['GET']);
         $builder->connect('/meu-perfil', ['controller' => 'Profile', 'action' => 'index'])->setMethods(['GET']);

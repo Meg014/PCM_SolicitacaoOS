@@ -315,3 +315,14 @@ Formato:
 - beforeFind de ServiceRequests omite excluídas das consultas operacionais, contadores, relatórios, indicadores, alertas e sincronização. Finder interno withDeleted mantém acesso da auditoria e unicidade histórica da O.S.; fotos de excluídas deixam de ser servidas pelo endpoint normal.
 - Elemento request_actions reutilizado na fila, listas, relatórios e detalhes. Lucide 0.468.0 (Eye/Pencil/Trash2) em SVG oficial, com licença em templates/element/icons/LICENSE: o projeto CakePHP não possui React/shadcn. Modal nativo dialog com foco/Escape, cancelamento e formulário POST/CSRF; script delegado suporta atualização da fila sem recarregar a página. URLs continuam geradas pelo CakePHP.
 - Migration aplicada no banco configurado e caches de schema default/test limpos. Validação restrita: 4 testes pontuais, 138 verificações aprovadas (permissões/UI, todos os estados, preservação física e auditoria, listagens/indicadores e subdiretório). Sem suíte extensa.
+
+## 2026-11-16 — Primeira integração SSO opcional
+- Cliente separado pcm-solicitacao-os; biblioteca Jumbojett com PKCE S256 obrigatório, RS256 exclusivo e claims estritas. Nenhuma alteração visual nem remoção do login local.
+- Vínculos por issuer + subject preparados por comando administrativo no servidor, com responsável ADMIN_PCM ativo e justificativa auditada; sem vínculo por e-mail/nome, criação de conta ou mudança de perfil.
+- Central autoriza cada requisição privada SSO por endpoint HTTPS/HMAC com timestamp, nonce único e auditoria persistida. Sem cache positivo; falha de consulta ou revogação encerra a sessão SSO na próxima requisição.
+- Sessão limitada pelo exp do ID token e inatividade existente, sem refresh. Logout local POST/CSRF; logout global via confirmação Keycloak sem expor tokens. Back-channel logout fora desta etapa. Login local permanece independente da autorização Central.
+- Operação e homologação em docs/SSO_INTEGRATION.md; recursos desabilitados por padrão e migrations oficiais pendentes. Nenhuma ativação em produção.
+
+## Homologação SSO local - 2026-11-16
+
+Corrigida a leitura booleana da flag SSO. As chaves de integração estavam vazias: foi gerada uma chave exclusiva nos dois arquivos .env locais, preservando o Client Secret existente. A Central usa a entrada local http://127.0.0.1:8766/sso, coerente com o callback já cadastrado. Requisições assinadas e revogação foram verificadas; vínculo de conta CakePHP permanece uma operação administrativa explícita, sem associação por nome/e-mail.

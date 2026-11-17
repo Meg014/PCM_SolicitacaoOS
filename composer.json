@@ -5,14 +5,15 @@
     "type":  "project",
     "homepage":  "https://cakephp.org",
     "require":  {
-                    "php": ">=8.2",
-                    "cakephp/cakephp":  "5.4.*",
-                    "cakephp/migrations":  "^5.0",
-                    "cakephp/plugin-installer":  "^2.0",
-                    "mobiledetect/mobiledetectlib":  "^4.8.03",
-                    "cakephp/authentication":  "^4.0",
-                    "josegonzalez/dotenv":  "^4.0"
-                },
+        "php": ">=8.2",
+        "cakephp/authentication": "^4.0",
+        "cakephp/cakephp": "5.4.*",
+        "cakephp/migrations": "^5.0",
+        "cakephp/plugin-installer": "^2.0",
+        "josegonzalez/dotenv": "^4.0",
+        "jumbojett/openid-connect-php": "1.0",
+        "mobiledetect/mobiledetectlib": "^4.8.03"
+    },
     "require-dev":  {
                         "cakephp/bake":  "^3.6",
                         "cakephp/cakephp-codesniffer":  "^5.3",

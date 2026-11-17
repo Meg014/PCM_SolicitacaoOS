@@ -23,6 +23,7 @@ final class IdleSessionMiddleware implements MiddlewareInterface
         $last = $session->read('AuthActivity.last_at');
         if ($session->read('Auth') && is_numeric($last) && $now - (int)$last >= (int)Configure::read('Session.timeout', 20) * 60) {
             $session->delete('Auth'); $session->delete('AuthActivity'); $session->renew();
+            $session->delete('Sso'); $session->delete('OidcTransaction');
             $session->write('AuthActivity.expired', true);
             return (new Response())->withStatus(303)->withHeader('Cache-Control', 'no-store')
                 ->withHeader('Location', Router::url(['controller' => 'Home', 'action' => 'login']));
