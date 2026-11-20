@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "99f7d7838392669e3491b4b48a8ec58c",
+    "content-hash": "24f6187807326d9abd49cc2a8ffd2061",
     "packages": [
         {
             "name": "cakephp/authentication",
@@ -500,27 +500,28 @@
         },
         {
             "name": "jumbojett/openid-connect-php",
-            "version": "v1.0.0",
+            "version": "v1.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jumbojett/OpenID-Connect-PHP.git",
-                "reference": "4af1d11497ec765dccddf928c14c04535ca96017"
+                "reference": "f327e7eb0626d55ddb6abc7b7c9e6ad3af4e5d51"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jumbojett/OpenID-Connect-PHP/zipball/4af1d11497ec765dccddf928c14c04535ca96017",
-                "reference": "4af1d11497ec765dccddf928c14c04535ca96017",
+                "url": "https://api.github.com/repos/jumbojett/OpenID-Connect-PHP/zipball/f327e7eb0626d55ddb6abc7b7c9e6ad3af4e5d51",
+                "reference": "f327e7eb0626d55ddb6abc7b7c9e6ad3af4e5d51",
                 "shasum": ""
             },
             "require": {
                 "ext-curl": "*",
                 "ext-json": "*",
                 "php": ">=7.0",
-                "phpseclib/phpseclib": "~3.0"
+                "phpseclib/phpseclib": "^3.0.7"
             },
             "require-dev": {
+                "phpunit/phpunit": "<10",
                 "roave/security-advisories": "dev-latest",
-                "yoast/phpunit-polyfills": "^1.0"
+                "yoast/phpunit-polyfills": "^2.0"
             },
             "type": "library",
             "autoload": {
@@ -535,9 +536,9 @@
             "description": "Bare-bones OpenID Connect client",
             "support": {
                 "issues": "https://github.com/jumbojett/OpenID-Connect-PHP/issues",
-                "source": "https://github.com/jumbojett/OpenID-Connect-PHP/tree/v1.0.0"
+                "source": "https://github.com/jumbojett/OpenID-Connect-PHP/tree/v1.0.2"
             },
-            "time": "2023-12-13T09:52:12+00:00"
+            "time": "2024-09-13T07:08:11+00:00"
         },
         {
             "name": "laminas/laminas-diactoros",
@@ -906,16 +907,16 @@
         },
         {
             "name": "paragonie/constant_time_encoding",
-            "version": "v3.1.4",
+            "version": "v3.1.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/paragonie/constant_time_encoding.git",
-                "reference": "5efef6e6cb43e088ccab7d0c1e2f2ab25b9e8b54"
+                "reference": "ceed38ba49d98b85808edfc4f04750ff61eb9739"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/paragonie/constant_time_encoding/zipball/5efef6e6cb43e088ccab7d0c1e2f2ab25b9e8b54",
-                "reference": "5efef6e6cb43e088ccab7d0c1e2f2ab25b9e8b54",
+                "url": "https://api.github.com/repos/paragonie/constant_time_encoding/zipball/ceed38ba49d98b85808edfc4f04750ff61eb9739",
+                "reference": "ceed38ba49d98b85808edfc4f04750ff61eb9739",
                 "shasum": ""
             },
             "require": {
@@ -971,7 +972,7 @@
                 "issues": "https://github.com/paragonie/constant_time_encoding/issues",
                 "source": "https://github.com/paragonie/constant_time_encoding"
             },
-            "time": "2026-11-06T20:31:19+00:00"
+            "time": "2026-11-18T13:55:22+00:00"
         },
         {
             "name": "paragonie/random_compat",
@@ -1025,16 +1026,16 @@
         },
         {
             "name": "phpseclib/phpseclib",
-            "version": "3.0.58",
+            "version": "3.0.59",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpseclib/phpseclib.git",
-                "reference": "91f3a6436bb84040ac0cf49e761977f17d16a39b"
+                "reference": "527959f6f26591d532c07cf1c426585ef7279fa9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/91f3a6436bb84040ac0cf49e761977f17d16a39b",
-                "reference": "91f3a6436bb84040ac0cf49e761977f17d16a39b",
+                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/527959f6f26591d532c07cf1c426585ef7279fa9",
+                "reference": "527959f6f26591d532c07cf1c426585ef7279fa9",
                 "shasum": ""
             },
             "require": {
@@ -1115,7 +1116,7 @@
             ],
             "support": {
                 "issues": "https://github.com/phpseclib/phpseclib/issues",
-                "source": "https://github.com/phpseclib/phpseclib/tree/3.0.58"
+                "source": "https://github.com/phpseclib/phpseclib/tree/3.0.59"
             },
             "funding": [
                 {
@@ -1131,7 +1132,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-11-02T10:45:48+00:00"
+            "time": "2026-11-20T07:39:42+00:00"
         },
         {
             "name": "psr/clock",
