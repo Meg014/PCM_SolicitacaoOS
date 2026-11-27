@@ -11,21 +11,25 @@ class TotvsEmployeesService implements EmployeesLookupInterface
     public function search(string $term): array
     {
         $term = trim($term);
-        if (mb_strlen($term) < 2 || mb_strlen($term) > 60) {
+        if ($term === '') {
             return [];
         }
         $pattern = '%' . strtr($term, ['[' => '[[]', '%' => '[%]', '_' => '[_]']) . '%';
-        return $this->lookup(['name_term' => $pattern, 'registration_term' => $pattern], false);
+        return $this->lookup(['name_term' => $pattern, 'registration_term' => $pattern,
+            'exact_registration' => $term, 'exact_name' => $term], false);
     }
 
-    public function find(string $registration): ?array
+    public function find(string $registration, ?string $selectionKey = null): ?array
     {
         if ($registration === '' || strlen($registration) > 100) {
             return null;
         }
         $rows = $this->lookup(['registration' => $registration], true);
-        // Ambiguous registration must never silently select a different employee.
-        return count($rows) === 1 ? $rows[0] : null;
+        if ($selectionKey === null || $selectionKey === '') {
+            return count($rows) === 1 ? $rows[0] : null;
+        }
+        $matches = array_values(array_filter($rows, fn($row) => $row['selection_key'] === $selectionKey));
+        return count($matches) === 1 ? $matches[0] : null;
     }
 
     protected function functions(): array
@@ -57,16 +61,11 @@ class TotvsEmployeesService implements EmployeesLookupInterface
                 $code = rtrim((string)$row['function_code']);
                 $registration = rtrim((string)$row['registration']);
                 $name = rtrim((string)$row['name']);
-                $situation = trim((string)$row['situation']);
-                if (!in_array($situation, TotvsEmployeeQueries::ALLOWED_SITUATIONS, true) || trim($registration) === '' || trim($name) === '') {
-                    continue;
-                }
                 $functionName = $functions[$code] ?? '';
                 $label = $registration . ' - ' . $name . ($functionName !== '' ? ' - ' . $functionName : '');
-                $statusLabel = match ($situation) { 'F' => 'FÉRIAS', 'A' => 'AFASTADO', default => '' };
                 $results[] = ['registration' => $registration, 'name' => $name, 'function_code' => $code,
-                    'function_name' => $functionName, 'situation' => $situation,
-                    'label' => $label . ($statusLabel !== '' ? ' - ' . $statusLabel : '')];
+                    'function_name' => $functionName, 'label' => $label,
+                    'selection_key' => hash('sha256', $registration . "\0" . $name . "\0" . $code)];
             }
             return $results;
         } catch (\Throwable $e) {

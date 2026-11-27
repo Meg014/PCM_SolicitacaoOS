@@ -6,19 +6,18 @@ namespace App\Service;
 /** Consultas parametrizadas e diagnóstico, sempre somente leitura. */
 final class TotvsEmployeeQueries
 {
-    public const ALLOWED_SITUATIONS = ['', 'F', 'A'];
-
     public static function lookup(bool $find = false): string
     {
-        $situations = implode(', ', array_map(fn($s) => "'" . $s . "'", self::ALLOWED_SITUATIONS));
-        $filter = $find ? 'RTRIM(RA_MAT) = :registration'
-            : '(UPPER(RA_NOME) LIKE UPPER(:name_term) OR UPPER(RA_MAT) LIKE UPPER(:registration_term))';
-        $limit = $find ? 2 : 20;
+        $columns = 'RTRIM(RA_MAT) AS registration, RTRIM(RA_NOME) AS name, RTRIM(RA_CODFUNC) AS function_code';
+        $source = 'FROM DADOSP12.dbo.SRA010';
+        if ($find) {
+            return "SELECT DISTINCT $columns $source WHERE RTRIM(RA_MAT) = :registration";
+        }
 
-        return "SELECT TOP ($limit) RTRIM(RA_MAT) AS registration, RTRIM(RA_NOME) AS name, RTRIM(RA_CODFUNC) AS function_code, LTRIM(RTRIM(RA_SITFOLH)) AS situation\n"
-            . "FROM DADOSP12.dbo.SRA010\nWHERE LTRIM(RTRIM(RA_SITFOLH)) IN ($situations)\n"
-            . "AND NULLIF(LTRIM(RTRIM(RA_MAT)), '') IS NOT NULL AND NULLIF(LTRIM(RTRIM(RA_NOME)), '') IS NOT NULL\n"
-            . "AND $filter\nORDER BY name, registration, function_code, situation";
+        return "SELECT TOP (20) $columns $source\n"
+            . "WHERE UPPER(RA_NOME) LIKE UPPER(:name_term) OR UPPER(RA_MAT) LIKE UPPER(:registration_term)\n"
+            . "GROUP BY RA_MAT, RA_NOME, RA_CODFUNC\n"
+            . "ORDER BY CASE WHEN RTRIM(RA_MAT) = :exact_registration OR UPPER(RTRIM(RA_NOME)) = UPPER(:exact_name) THEN 0 ELSE 1 END, name, registration, function_code";
     }
     public const COLUMNS = <<<'SQL'
 SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH

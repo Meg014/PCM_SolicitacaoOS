@@ -29,7 +29,7 @@ class EmployeeAppointmentsTest extends TestCase
                 if ($this->unavailable) { throw new EmployeesUnavailableException(); }
                 return in_array($term, ['ABADIO', '006783'], true) ? [$this->find('006783')] : [];
             }
-            public function find(string $registration): ?array
+            public function find(string $registration, ?string $selectionKey = null): ?array
             {
                 if ($this->unavailable) { throw new EmployeesUnavailableException(); }
                 return $registration === '006783' ? ['registration' => '006783', 'name' => 'ABADIO',
@@ -116,7 +116,7 @@ class EmployeeAppointmentsTest extends TestCase
     {
         $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read'])->getMock();
         $service->expects($this->once())->method('read')->with($this->anything(),
-            ['name_term' => '%AB%', 'registration_term' => '%AB%'])->willReturn([]);
+            ['name_term' => '%AB%', 'registration_term' => '%AB%', 'exact_registration' => 'AB', 'exact_name' => 'AB'])->willReturn([]);
         $this->assertSame([], $service->search('AB'));
     }
 

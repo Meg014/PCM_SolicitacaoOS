@@ -12,7 +12,7 @@ final class FakeEmployees implements EmployeesLookupInterface
         return strlen(trim($term)) < 2 ? [] : [$this->find($term)];
     }
 
-    public function find(string $registration): ?array
+    public function find(string $registration, ?string $selectionKey = null): ?array
     {
         if (trim($registration) === '') { return null; }
         return ['registration' => $registration, 'name' => $registration, 'function_code' => '00005',

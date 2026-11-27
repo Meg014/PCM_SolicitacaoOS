@@ -29,7 +29,8 @@ class TotvsEmployeesServiceTest extends TestCase
             $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read', 'functions'])->getMock();
             $service->method('functions')->willReturn(['00005' => 'Mecânico']);
             $service->expects($this->once())->method('read')->with(TotvsEmployeeQueries::lookup(),
-                ['name_term' => '%' . $term . '%', 'registration_term' => '%' . $term . '%'])->willReturn([$this->row()]);
+                ['name_term' => '%' . $term . '%', 'registration_term' => '%' . $term . '%',
+                    'exact_registration' => $term, 'exact_name' => $term])->willReturn([$this->row()]);
             $result = $service->search($term);
             $this->assertSame('006783 - ABADIO OLIVEIRA - Mecânico', $result[0]['label']);
             $this->assertSame('00005', $result[0]['function_code']);
@@ -41,7 +42,7 @@ class TotvsEmployeesServiceTest extends TestCase
         $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read', 'functions'])->getMock();
         $service->method('functions')->willReturn(['00005' => 'Mecânico']);
         $service->expects($this->once())->method('read')->with(TotvsEmployeeQueries::lookup(),
-            ['name_term' => '%A[%][_][[]%', 'registration_term' => '%A[%][_][[]%'])
+            ['name_term' => '%A[%][_][[]%', 'registration_term' => '%A[%][_][[]%', 'exact_registration' => 'A%_[', 'exact_name' => 'A%_['])
             ->willReturn([$this->row()]);
 
         $this->assertSame('006783 - ABADIO OLIVEIRA - Mecânico', $service->search('A%_[')[0]['label']);
@@ -52,14 +53,9 @@ class TotvsEmployeesServiceTest extends TestCase
         foreach (['', ' ', 'F', 'A', 'D', 'X'] as $situation) {
             $service = $this->service([array_replace($this->row($situation), ['function_code' => '99999'])]);
             $result = $service->search('AB');
-            $eligible = in_array(trim($situation), ['', 'F', 'A'], true);
-            $this->assertCount($eligible ? 1 : 0, $result);
-            $this->assertSame($eligible, $service->find('006783') !== null);
-            if ($eligible) {
-                $this->assertSame(trim($situation), $result[0]['situation']);
-                $suffix = match (trim($situation)) { 'F' => ' - FÉRIAS', 'A' => ' - AFASTADO', default => '' };
-                $this->assertSame('006783 - ABADIO OLIVEIRA' . $suffix, $result[0]['label']);
-            }
+            $this->assertCount(1, $result);
+            $this->assertSame('006783 - ABADIO OLIVEIRA', $result[0]['label']);
+            $this->assertSame($result[0], $service->find('006783'));
         }
     }
 
@@ -81,36 +77,31 @@ class TotvsEmployeesServiceTest extends TestCase
     {
         $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read'])->getMock();
         $service->expects($this->never())->method('read');
-        foreach (['', 'a', str_repeat('x', 61)] as $term) { $this->assertSame([], $service->search($term)); }
+        $this->assertSame([], $service->search('   '));
     }
 
     public function testFindRevalidatesAndRejectsAmbiguousRegistration(): void
     {
         $this->assertSame('006783', $this->service([$this->row()])->find('006783')['registration']);
         $this->assertNull($this->service([$this->row(), $this->row()])->find('006783'));
-        $this->assertNull($this->service([$this->row('D')])->find('006783'));
+        $service = $this->service([$this->row(), array_replace($this->row('D'), ['name' => 'OUTRO FUNCIONÁRIO'])]);
+        $this->assertNull($service->find('006783'));
+        $selected = $service->search('OUTRO')[1];
+        $this->assertSame('OUTRO FUNCIONÁRIO', $service->find('006783', $selected['selection_key'])['name']);
     }
 
-    public function testExactReadOnlyQueriesAndSituationPredicate(): void
+    public function testLookupUsesOnlyNameAndRegistrationAndPrioritizesExactMatches(): void
     {
-        foreach ([1] as $count) {
-            foreach ([true, false] as $find) {
-                $sql = TotvsEmployeeQueries::lookup($find);
-                $this->assertTrue(TotvsEmployeeQueries::allows($sql));
-                $this->assertStringContainsString('FROM DADOSP12.dbo.SRA010', $sql);
-                $this->assertStringContainsString("IN ('', 'F', 'A')", $sql);
-                if ($find) {
-                    $this->assertStringContainsString('RTRIM(RA_MAT) = :registration', $sql);
-                } else {
-                    $this->assertStringContainsString('UPPER(RA_NOME) LIKE UPPER(:name_term)', $sql);
-                    $this->assertStringContainsString('UPPER(RA_MAT) LIKE UPPER(:registration_term)', $sql);
-                }
-                $this->assertStringNotContainsString('RA_CODFUNC IN', $sql);
-                $this->assertStringNotContainsString('RA_FILIAL', $sql);
-                $this->assertFalse(TotvsEmployeeQueries::allows($sql . '; DELETE FROM DADOSP12.dbo.SRA010'));
-                $this->assertFalse(TotvsEmployeeQueries::allows(str_replace("IN ('', 'F', 'A')", "IN ('D')", $sql)));
-            }
+        foreach ([true, false] as $find) {
+            $sql = TotvsEmployeeQueries::lookup($find);
+            $this->assertTrue(TotvsEmployeeQueries::allows($sql));
+            $this->assertStringContainsString('FROM DADOSP12.dbo.SRA010', $sql);
+            $this->assertStringNotContainsString('RA_SITFOLH', $sql);
+            $this->assertStringNotContainsString('authorized_functions', $sql);
+            $this->assertFalse(TotvsEmployeeQueries::allows($sql . ' AND RA_CODFUNC = 1'));
         }
+        $this->assertStringContainsString('WHERE RTRIM(RA_MAT) = :registration', TotvsEmployeeQueries::lookup(true));
+        $this->assertStringContainsString('ORDER BY CASE WHEN RTRIM(RA_MAT) = :exact_registration', TotvsEmployeeQueries::lookup());
     }
 
     public function testUnavailableLookupDoesNotLeakDriverDetails(): void

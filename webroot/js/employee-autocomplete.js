@@ -6,6 +6,7 @@ function initEmployeeAutocomplete(group) {
 
     const input = group.querySelector('[data-search]');
     const selected = group.querySelector('[data-selected]');
+    const selectionKey = group.querySelector('[data-selection-key]');
     const list = group.querySelector('[role="listbox"]');
     const message = group.querySelector('.lookup-message');
     let timer, controller, version = 0, active = -1;
@@ -24,6 +25,7 @@ function initEmployeeAutocomplete(group) {
         ++version;
         input.value = employee.label;
         selected.value = employee.registration;
+        selectionKey.value = employee.selection_key || '';
         input.setCustomValidity('');
         message.textContent = 'Selecionado: ' + employee.label;
         close();
@@ -36,15 +38,14 @@ function initEmployeeAutocomplete(group) {
         if (controller) controller.abort();
         const current = ++version;
         selected.value = '';
+        selectionKey.value = '';
         input.setCustomValidity('');
         close();
         list.replaceChildren();
 
         const term = input.value.trim();
-        if (term.length < 2 || term.length > 60) {
-            message.textContent = term.length > 60
-                ? 'Use até 60 caracteres para pesquisar.'
-                : 'Digite pelo menos 2 caracteres.';
+        if (!term) {
+            message.textContent = 'Digite um nome ou matrícula.';
             return;
         }
 
@@ -79,7 +80,6 @@ function initEmployeeAutocomplete(group) {
                     option.setAttribute('role', 'option');
                     option.setAttribute('aria-selected', 'false');
                     option.className = 'd-block w-100 text-start border-0 border-bottom p-3 bg-white';
-                    if (['F', 'A'].includes(employee.situation)) option.style.color = '#6c757d';
                     option.textContent = employee.label;
                     option.addEventListener('mousedown', event => event.preventDefault());
                     option.addEventListener('click', () => choose(employee));

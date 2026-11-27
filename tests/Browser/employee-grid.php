@@ -31,12 +31,12 @@ const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
   search.value='ABAD'; search.dispatchEvent(new Event('input',{bubbles:true}));
   check(row.querySelector('[data-selected]').value==='','edited selection invalidated'); await wait(400);
   row.querySelector('[role=option]').click(); check(search.value==='006783 - ABADIO - Mecânico','touch selection');
-  for (const situation of ['', 'F', 'A']) {
+  for (const situation of ['', 'F', 'A', 'D', 'X']) {
    window.fetch=async()=>({ok:true,redirected:false,json:async()=>({results:[{registration:'008272',label:'008272 - NOME',situation}]})});
    search.value='008272'; search.dispatchEvent(new Event('input',{bubbles:true})); await wait(400);
    const option=row.querySelector('[role=option]');
    check(!!option,'situation appears '+situation);
-   check(option.style.color===(situation ? 'rgb(108, 117, 125)' : ''),'gray only for vacation/leave '+situation);
+   check(option.style.color==='', 'same color for every situation '+situation);
    check(!option.disabled && option.getAttribute('aria-disabled')!=='true','selectable '+situation);
    option.click(); check(row.querySelector('[data-selected]').value==='008272','situation selection '+situation);
   }

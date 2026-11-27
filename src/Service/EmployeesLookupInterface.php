@@ -7,5 +7,5 @@ interface EmployeesLookupInterface
 {
     public function search(string $term): array;
 
-    public function find(string $registration): ?array;
+    public function find(string $registration, ?string $selectionKey = null): ?array;
 }

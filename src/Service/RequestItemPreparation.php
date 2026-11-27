@@ -28,7 +28,8 @@ final class RequestItemPreparation
                 array_walk_recursive($errors, function ($message) use (&$messages): void { $messages[] = $message; });
                 throw new \InvalidArgumentException('Apontamento ' . ($index + 1) . ': ' . implode(' ', $messages));
             }
-            $employee = ($employees ??= new TotvsEmployeesService())->find($item->employee_registration);
+            $selectionKey = $raw['employee_selection_key'] ?? null;
+            $employee = ($employees ??= new TotvsEmployeesService())->find($item->employee_registration, is_string($selectionKey) ? $selectionKey : null);
             if (!$employee) {
                 throw new \InvalidArgumentException('Apontamento ' . ($index + 1) . ': pesquise e selecione um funcionário permitido da lista.');
             }

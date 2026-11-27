@@ -13,8 +13,9 @@ $renderRow = function ($index, $row) use ($text): void {
 <input type="hidden" name="items[<?= h($index) ?>][_added]" data-included value="<?= ($row['_added'] ?? '') === '1' ? '1' : '' ?>">
 <div class="autocomplete employee-field" data-kind="employee" data-lookup="<?= $this->Url->build(['controller' => 'Lookups', 'action' => 'employees']) ?>">
 <label for="item-<?= h($index) ?>-employee_label">Funcionário</label>
-<input id="item-<?= h($index) ?>-employee_label" name="items[<?= h($index) ?>][employee_label]" value="<?= h($text($row['employee_label'] ?? $row['employee_registration'] ?? '')) ?>" type="text" data-item-field="employee_label" data-search role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="employees-<?= h($index) ?>" autocomplete="off" maxlength="150" required placeholder="Nome ou matrícula">
+<input id="item-<?= h($index) ?>-employee_label" name="items[<?= h($index) ?>][employee_label]" value="<?= h($text($row['employee_label'] ?? $row['employee_registration'] ?? '')) ?>" type="text" data-item-field="employee_label" data-search role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="employees-<?= h($index) ?>" autocomplete="off" required placeholder="Nome ou matrícula">
 <input name="items[<?= h($index) ?>][employee_registration]" type="hidden" data-item-field="employee_registration" data-selected value="<?= h($text($row['employee_registration'] ?? '')) ?>">
+<input name="items[<?= h($index) ?>][employee_selection_key]" type="hidden" data-item-field="employee_selection_key" data-selection-key value="<?= h($text($row['employee_selection_key'] ?? '')) ?>">
 <div id="employees-<?= h($index) ?>" role="listbox" aria-label="Funcionários encontrados" hidden></div>
 <p class="lookup-message help" aria-live="polite"></p>
 </div>
