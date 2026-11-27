@@ -37,6 +37,18 @@ class RequestCreationService
             'sector_id', 'asset_code', 'asset_branch', 'maintenance_type', 'unit', 'flow', 'os_disposition',
         ])));
         $entity->patch($service);
+        $fromChecklist = $data['from_checklist'] ?? '0';
+        $entity->checklist_route = null;
+        if ($fromChecklist === '1') {
+            $route = $data['checklist_route'] ?? null;
+            if (!is_string($route) || trim($route) === '') {
+                $entity->setError('checklist_route', 'Informe a rota do checklist.');
+            } else {
+                $entity->checklist_route = trim($route);
+            }
+        } elseif ($fromChecklist !== '0') {
+            $entity->setError('from_checklist', 'Selecione Sim ou Não.');
+        }
         if ($service['description'] === '') {
             $entity->setError($serviceErrorField, $serviceError ?? 'Selecione a ação e o item/componente.');
             throw new PersistenceFailedException($entity, 'Selecione um serviço válido.');
@@ -116,6 +128,7 @@ class RequestCreationService
                         'number' => $entity->number, 'user_id' => $userId, 'sector_id' => $entity->sector_id,
                         'asset_code' => $asset['code'], 'asset_branch' => $asset['branch'], 'asset_description' => $asset['description'],
                         'maintenance_type' => $entity->maintenance_type, 'description' => $entity->description,
+                        'checklist_route' => $entity->checklist_route,
                         'service_action_id' => $entity->service_action_id, 'service_action_name' => $entity->service_action_name,
                         'service_component_id' => $entity->service_component_id, 'service_component_name' => $entity->service_component_name, 'unit' => $entity->unit,
                         'status' => $entity->status, 'flow' => $entity->flow, 'os_disposition' => $entity->os_disposition,

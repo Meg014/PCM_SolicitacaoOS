@@ -2,6 +2,10 @@
 
 Registre aqui apenas decisões que não estão claras no `PROJECT_SPEC.md`.
 
+## Origem da solicitação por checklist
+
+A rota é texto livre. Uma rota preenchida identifica origem Checklist. A rota nula identifica solicitação manual, inclusive nos registros anteriores à migration.
+
 Formato:
 
 ## AAAA-MM-DD — Título

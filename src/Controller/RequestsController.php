@@ -17,8 +17,10 @@ class RequestsController extends AppController
     {
         $this->request->allowMethod(['get', 'post']);
         $actorId = (int)$this->request->getAttribute('identity')->getIdentifier();
-        \App\Service\RequestAdministrationService::authorize($actorId);
         $request = $this->fetchTable('ServiceRequests')->get($id);
+        $editRole = \App\Service\RequestAdministrationService::authorizeEdit($actorId, $request);
+        $this->response = $this->response->withHeader('Cache-Control', 'no-store, private');
+        $this->set('maintainerEdit', $editRole === UserRole::MANTENEDOR);
         if ($this->request->is('post')) {
             try {
                 (new \App\Service\RequestAdministrationService())->edit((int)$id, $actorId, $this->request->getData(), $assets, $orders);
@@ -96,8 +98,15 @@ class RequestsController extends AppController
     public function index(): void
     {
         $query = $this->fetchTable('ServiceRequests')->find()->contain(['Sectors'])
-            ->where(['ServiceRequests.user_id' => $this->request->getAttribute('identity')->getIdentifier()])
-            ->orderBy(['ServiceRequests.created_at' => 'DESC', 'ServiceRequests.id' => 'DESC']);
+            ->where(['ServiceRequests.user_id' => $this->request->getAttribute('identity')->getIdentifier()]);
+        $maintainer = $this->request->getAttribute('identity')->get('role') === UserRole::MANTENEDOR->value;
+        if ($maintainer) {
+            $query->orderBy('GREATEST(ServiceRequests.created_at, ServiceRequests.updated_at, ServiceRequests.last_activity_at) DESC');
+            $this->response = $this->response->withHeader('Cache-Control', 'no-store, private');
+        } else {
+            $query->orderBy(['ServiceRequests.created_at' => 'DESC']);
+        }
+        $query->orderBy(['ServiceRequests.id' => 'DESC']);
         $status = $this->request->getQuery('status');
         if (is_string($status) && RequestStatus::tryFrom($status)) {
             $query->where(['ServiceRequests.status' => $status]);
@@ -114,7 +123,7 @@ class RequestsController extends AppController
         foreach (RequestStatus::cases() as $state) {
             $statuses[$state->value] = $state->label();
         }
-        $this->set(compact('requests', 'statuses'));
+        $this->set(compact('requests', 'statuses', 'maintainer'));
     }
 
     public function view(string $id): void

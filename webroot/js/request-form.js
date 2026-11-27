@@ -1,5 +1,21 @@
 'use strict';
 
+const checklistOrigin = document.getElementById('from-checklist');
+if (checklistOrigin) {
+    const route = document.getElementById('checklist-route');
+    const field = document.getElementById('checklist-route-field');
+    const updateChecklist = () => {
+        const enabled = checklistOrigin.value === '1';
+        field.hidden = !enabled;
+        route.disabled = !enabled;
+        route.required = enabled;
+        if (!enabled) route.value = '';
+    };
+    checklistOrigin.addEventListener('change', updateChecklist);
+    window.addEventListener('pageshow', updateChecklist);
+    updateChecklist();
+}
+
 const photos = document.getElementById('photos');
 if (photos) {
     const camera = document.getElementById('camera-photos');

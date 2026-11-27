@@ -55,6 +55,130 @@ class RequestsControllerTest extends TestCase
         ];
     }
 
+    public function testMaintainerTableHighlightsOsAndOrdersByLatestActivity(): void
+    {
+        $now = \Cake\I18n\DateTime::now('UTC');
+        $this->requests()->updateAll(['created_at' => $now->subMinutes(5), 'updated_at' => $now->subMinutes(5)], ['id' => 1]);
+        $this->requests()->updateAll(['user_id' => 3, 'totvs_os_number' => '007404', 'last_activity_at' => $now], ['id' => 2]);
+        $this->session(['Auth' => 3]);
+        $this->get('/minhas-solicitacoes');
+        $this->assertResponseOk();
+        foreach (['Solicitação', 'Data/Hora', 'Bem / Equipamento', 'Mão de obra', 'Tipo', 'Situação', 'O.S. TOTVS', 'Tempo de atendimento', 'Ações'] as $heading) {
+            $this->assertResponseContains('<th scope="col">' . $heading . '</th>');
+        }
+        $this->assertResponseContains('class="table-scroll" tabindex="0"');
+        $this->assertResponseContains('<strong class="status" data-status="OS_ABERTA">O.S. 007404</strong>');
+        $this->assertResponseContains('/solicitacoes/1/editar');
+        $this->assertResponseNotContains('/solicitacoes/2/editar');
+        $this->assertResponseNotContains('title="Excluir solicitação"');
+        $body = (string)$this->_response->getBody();
+        $this->assertLessThan(strpos($body, 'SOL-2026-000001'), strpos($body, 'SOL-2026-000002'));
+    }
+
+    public function testMaintainerEditsAllowedFieldsAndAuditsWithoutChangingProtectedData(): void
+    {
+        $this->session(['Auth' => 3]);
+        $this->submit($this->payload());
+        $original = $this->requests()->find()->orderBy(['id' => 'DESC'])->contain(['RequestItems'])->firstOrFail();
+        $url = '/solicitacoes/' . $original->id . '/editar';
+        $this->get($url);
+        $this->assertResponseOk();
+        $this->assertResponseNotContains('name="os_disposition"');
+        $data = array_replace($this->payload(), [
+            'unit' => 'FABRICA', 'asset_code' => 'BEM02', 'asset_branch' => '02', 'asset_label' => 'Motor elétrico (BEM02)',
+            'sector_id' => 2, 'maintenance_type' => MaintenanceType::PREVENTIVA->value,
+            'service_action_id' => 2, 'service_component_id' => 2,
+            'os_disposition' => 'SOMENTE_ABERTURA', 'flow' => 'SOMENTE_ABERTURA',
+            'user_id' => 2, 'number' => 'FORJADO', 'totvs_os_number' => '999999',
+            'status' => 'CANCELADA', 'created_at' => '2099-01-01', 'description' => 'FORJADO',
+            'items' => [], 'request_audits' => [], 'os_linked_by' => 3,
+        ]);
+        $this->post($url, $data);
+        $this->assertResponseCode(302);
+        $updated = $this->requests()->get($original->id, contain: ['RequestItems', 'RequestAudits']);
+        foreach (['unit', 'asset_code', 'asset_branch', 'sector_id', 'maintenance_type', 'service_action_id', 'service_component_id'] as $field) {
+            $this->assertEquals($data[$field], $updated->get($field));
+        }
+        $this->assertSame('Motor elétrico', $updated->asset_description);
+        $this->assertSame('Soldar chapa', $updated->description);
+        foreach (['user_id', 'number', 'totvs_os_number', 'status', 'flow', 'os_disposition', 'created_at', 'os_linked_by'] as $field) {
+            $this->assertEquals($original->get($field), $updated->get($field));
+        }
+        $this->assertEquals($original->request_items, $updated->request_items);
+        $audit = end($updated->request_audits);
+        $this->assertSame('REQUEST_UPDATED', $audit->action);
+        $this->assertSame(3, $audit->user_id);
+        $this->assertSame('MANTENEDOR', $audit->actor_snapshot['role']);
+        $this->assertNotNull($audit->created_at);
+        foreach (['unit', 'asset_code', 'asset_branch', 'sector_id', 'maintenance_type', 'service_action_id', 'service_component_id'] as $field) {
+            $this->assertEquals($original->get($field), $audit->old_values[$field]);
+            $this->assertEquals($updated->get($field), $audit->new_values[$field]);
+        }
+    }
+
+    public function testMaintainerEditRejectsExpiredForeignAndLinkedRequestsOnGetAndPost(): void
+    {
+        $this->session(['Auth' => 3]);
+        $now = \Cake\I18n\DateTime::now('UTC');
+        foreach ([
+            ['user_id' => 3, 'created_at' => $now->subMinutes(11), 'totvs_os_number' => null],
+            ['user_id' => 2, 'created_at' => $now, 'totvs_os_number' => null],
+            ['user_id' => 3, 'created_at' => $now, 'totvs_os_number' => '007404'],
+        ] as $values) {
+            $this->requests()->updateAll($values, ['id' => 1]);
+            $before = $this->requests()->get(1)->toArray();
+            $this->get('/solicitacoes/1/editar');
+            $this->assertResponseCode(403);
+            $this->enableCsrfToken('pcm_solicitacao_os_csrf');
+            $this->post('/solicitacoes/1/editar', $this->payload());
+            $this->assertResponseCode(403);
+            $this->assertEquals($before, $this->requests()->get(1)->toArray());
+            // The service must enforce the same policy without relying on the controller.
+            try {
+                (new \App\Service\RequestAdministrationService())->edit(1, 3, $this->payload(), new \App\Service\TotvsAssetsService());
+                $this->fail('A edição deveria ter sido bloqueada.');
+            } catch (\Cake\Http\Exception\ForbiddenException) {
+                $this->assertTrue(true);
+            }
+            $this->get('/minhas-solicitacoes');
+            $this->assertResponseNotContains('/solicitacoes/1/editar');
+        }
+        $this->assertSame(0, TableRegistry::getTableLocator()->get('RequestAudits')->find()->where(['action' => 'REQUEST_UPDATED'])->count());
+    }
+
+    public function testMaintainerDeadlineBoundaryAndExpirationWhileFormIsOpen(): void
+    {
+        $now = \Cake\I18n\DateTime::now('UTC');
+        $this->requests()->updateAll(['created_at' => $now->subSeconds(599)], ['id' => 1]);
+        $request = $this->requests()->get(1);
+        $this->assertTrue(\App\Service\RequestAccess::canEdit($request, 'MANTENEDOR', 3, $now));
+        $this->assertFalse(\App\Service\RequestAccess::canEdit($request, 'MANTENEDOR', 3, $now->addSeconds(1)));
+        $this->assertTrue(\App\Service\RequestAccess::canEdit($request, 'ADMIN_PCM', 1, $now->addDays(1)));
+        $this->requests()->updateAll(['created_at' => $now->subMinutes(5)], ['id' => 1]);
+        $this->session(['Auth' => 3]);
+        $this->get('/solicitacoes/1/editar');
+        $this->assertResponseOk();
+        $this->requests()->updateAll(['created_at' => $now->subMinutes(11)], ['id' => 1]);
+        $this->enableCsrfToken('pcm_solicitacao_os_csrf');
+        $this->post('/solicitacoes/1/editar', $this->payload());
+        $this->assertResponseCode(403);
+        $this->session(['Auth' => 1]);
+        $this->get('/solicitacoes/1/editar');
+        $this->assertResponseOk();
+    }
+
+    public function testMaintainerEditRequiresTotvsSelection(): void
+    {
+        $this->session(['Auth' => 3]);
+        $this->submit($this->payload());
+        $original = $this->requests()->find()->orderBy(['id' => 'DESC'])->firstOrFail();
+        foreach ([['asset_code' => 'INVALIDO'], ['asset_label' => 'Texto livre'], ['service_action_id' => 4]] as $override) {
+            $this->post('/solicitacoes/' . $original->id . '/editar', array_replace($this->payload(), $override));
+            $this->assertResponseOk();
+            $this->assertEquals($original->toArray(), $this->requests()->get($original->id)->toArray());
+        }
+    }
+
     public function testAdministrativeActionsRejectOperationalProfiles(): void
     {
         foreach ([2, 3] as $id) {
@@ -374,6 +498,42 @@ class RequestsControllerTest extends TestCase
         foreach (['/solicitacoes/nova', '/minhas-solicitacoes', '/solicitacoes/1', '/api/bens?q=bo', '/api/setores?q=ma'] as $url) {
             $this->get($url);
             $this->assertRedirect('/entrar');
+        }
+    }
+
+    public function testChecklistRouteIsRequiredAndShownInDetailAndReport(): void
+    {
+        $this->session(['Auth' => 1]);
+        $data = $this->payload() + ['from_checklist' => '1'];
+        foreach ([null, '   '] as $route) {
+            $this->submit($data + ['checklist_route' => $route]);
+            $this->assertResponseContains('Informe a rota do checklist.');
+            $this->assertSame(2, $this->requests()->find()->count());
+        }
+        $this->submit($data + ['checklist_route' => ' ROTA 01 ']);
+        $this->assertResponseCode(302);
+        $request = $this->requests()->find()->orderByDesc('id')->firstOrFail();
+        $this->assertSame('ROTA 01', $request->checklist_route);
+        foreach (['/solicitacoes/' . $request->id, '/relatorios'] as $url) {
+            $this->get($url);
+            $this->assertResponseContains('Origem: Checklist');
+            $this->assertResponseContains('Rota: ROTA 01');
+        }
+    }
+
+    public function testManualOriginDefaultsAndDiscardsSubmittedRoute(): void
+    {
+        $this->session(['Auth' => 1]);
+        $this->get('/solicitacoes/nova');
+        $this->assertResponseContains('id="checklist-route-field" hidden');
+        foreach ([[], ['from_checklist' => '0']] as $choice) {
+            $this->submit($this->payload() + $choice + ['checklist_route' => 'ROTA 02']);
+            $this->assertResponseCode(302);
+            $request = $this->requests()->find()->orderByDesc('id')->firstOrFail();
+            $this->assertNull($request->checklist_route);
+            $this->get('/solicitacoes/' . $request->id);
+            $this->assertResponseContains('Origem: Solicitação manual');
+            $this->assertResponseNotContains('Rota:');
         }
     }
 

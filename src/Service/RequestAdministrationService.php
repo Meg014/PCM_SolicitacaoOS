@@ -10,6 +10,15 @@ use Cake\Http\Exception\{ForbiddenException, ConflictException, NotFoundExceptio
 
 class RequestAdministrationService
 {
+    public static function authorizeEdit(int $actorId, \App\Model\Entity\ServiceRequest $request): UserRole
+    {
+        $actor = TableRegistry::getTableLocator()->get('Users')->find()->where(['id' => $actorId, 'active' => true])->first();
+        if (!$actor || !RequestAccess::canEdit($request, $actor->role, $actorId)) {
+            throw new ForbiddenException('Você só pode editar sua própria solicitação nos primeiros 10 minutos e antes do vínculo da O.S. Após isso, procure o administrador PCM.');
+        }
+        return UserRole::from($actor->role);
+    }
+
     public static function authorize(int $actorId): void
     {
         if (!TableRegistry::getTableLocator()->get('Users')->exists(['id' => $actorId, 'active' => true, 'role' => UserRole::ADMIN_PCM->value])) {
@@ -22,11 +31,12 @@ class RequestAdministrationService
         $tables = TableRegistry::getTableLocator();
         $requests = $tables->get('ServiceRequests');
         $requests->getConnection()->transactional(function () use ($id, $actorId, $data, $assets, $orders, $tables, $requests): void {
-            self::authorize($actorId);
             $this->lock($requests, $id);
             $request = $requests->get($id);
+            $role = self::authorizeEdit($actorId, $request);
             $old = $request->toArray();
-            $fields = ['unit', 'sector_id', 'asset_code', 'asset_branch', 'maintenance_type', 'os_disposition'];
+            $fields = ['unit', 'sector_id', 'asset_code', 'asset_branch', 'maintenance_type'];
+            if ($role === UserRole::ADMIN_PCM) { $fields[] = 'os_disposition'; }
             $request = $requests->patchEntity($request, array_intersect_key($data, array_flip($fields)), ['associated' => []]);
             if ($request->hasErrors()) { throw new PersistenceFailedException($request, 'Revise os campos indicados.'); }
             $asset = $assets->find($request->asset_code, (string)$request->asset_branch);
@@ -89,6 +99,7 @@ class RequestAdministrationService
                 $before['totvs_os_number'] = $request->totvs_os_number;
                 $after += $validation;
             }
+            self::authorizeEdit($actorId, $request);
             $requests->saveOrFail($request);
             $audits = $tables->get('RequestAudits');
             $audits->saveOrFail($audits->newEntity(['request_id' => $id, 'user_id' => $actorId, 'action' => 'REQUEST_UPDATED',

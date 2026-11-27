@@ -32,6 +32,11 @@ $text = fn($value) => is_scalar($value) ? (string)$value : '';
 <?= $this->Form->error('confirm_existing') ?>
 <?= $this->Form->control('sector_id', ['label' => 'Mão de obra', 'options' => $sectors, 'empty' => 'Selecione a Mão de obra', 'required' => true]) ?>
 <?= $this->Form->control('maintenance_type', ['label' => 'Tipo de manutenção', 'options' => $types, 'empty' => 'Selecione o tipo', 'required' => true]) ?>
+<?php $fromChecklist = ($data['from_checklist'] ?? '0') === '1'; ?>
+<?= $this->Form->control('from_checklist', ['type' => 'select', 'label' => 'O.S. vem de um checklist?', 'options' => ['0' => 'Não', '1' => 'Sim'], 'value' => $fromChecklist ? '1' : '0']) ?>
+<div id="checklist-route-field"<?= $fromChecklist ? '' : ' hidden' ?>>
+    <?= $this->Form->control('checklist_route', ['type' => 'text', 'label' => 'Rota do checklist', 'value' => $fromChecklist ? $text($data['checklist_route'] ?? '') : '', 'required' => $fromChecklist, 'disabled' => !$fromChecklist]) ?>
+</div>
 <?= $this->element('service_pair', ['pairData' => $data]) ?>
 <fieldset id="os-disposition"><legend>Como esta Ordem de Serviço deve seguir após a abertura?</legend>
 <div class="os-options">

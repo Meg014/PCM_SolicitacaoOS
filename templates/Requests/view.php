@@ -8,6 +8,7 @@
 <?php endif; ?>
 <p class="status" data-status="<?= h($request->status) ?>"><?= h(\App\Domain\Enum\RequestStatus::from($request->status)->label()) ?></p>
 <?= $this->element('os_disposition', ['request' => $request]) ?>
+<?= $this->element('request_origin', ['request' => $request]) ?>
 <dl class="request-details">
     <dt>Tipo de solicitação</dt><dd><?= h(\App\Domain\Enum\RequestFlow::from($request->flow)->label()) ?></dd>
     <dt>Unidade</dt><dd><?= h(\App\Domain\Enum\RequestUnit::display($request->unit)) ?></dd>

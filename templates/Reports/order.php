@@ -2,6 +2,7 @@
 <h1>Detalhes da Ordem de Serviço no TOTVS</h1>
 <p><?= h($request->number) ?> · O.S. <?= h($request->totvs_os_number) ?></p>
 <p class="help">Consulta em tempo real. Alterações e encerramento são realizados exclusivamente no TOTVS.</p>
+<?= $this->element('request_origin', ['request' => $request]) ?>
 <?php if ($error): ?><p class="message" role="alert"><?= h($error) ?></p><?php endif; ?>
 <?php if ($order): ?>
 <dl class="request-details">

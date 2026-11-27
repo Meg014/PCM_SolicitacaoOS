@@ -13,6 +13,32 @@
 <?php if (count($requests) === 0): ?>
 <p>Nenhuma solicitação encontrada. Use “Nova Ordem de Serviço” para registrar seu pedido.</p>
 <?php endif; ?>
+<?php if ($maintainer): ?>
+<p class="table-scroll-help">Deslize a tabela para os lados para consultar todas as colunas.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Minhas solicitações">
+<table class="report-table"><thead><tr>
+<?php foreach (['Solicitação', 'Data/Hora', 'Bem / Equipamento', 'Mão de obra', 'Tipo', 'Situação', 'O.S. TOTVS', 'Tempo de atendimento', 'Ações'] as $heading): ?><th scope="col"><?= h($heading) ?></th><?php endforeach; ?>
+</tr></thead><tbody>
+<?php foreach ($requests as $request): ?>
+<tr>
+<td><?= $this->Html->link($request->number, ['action' => 'view', $request->id]) ?></td>
+<td><?= h($request->created_at->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i')) ?></td>
+<td><?= h($request->asset_description) ?></td>
+<td><?= h($request->sector->name) ?></td>
+<td><?= h(\App\Service\MaintenanceTypeCatalog::label($request->maintenance_type)) ?></td>
+<td><span class="status" data-status="<?= h($request->status) ?>"><?= h($statuses[$request->status]) ?></span></td>
+<td><?php if ($request->totvs_os_number): ?><strong class="status" data-status="OS_ABERTA">O.S. <?= h($request->totvs_os_number) ?></strong><?php else: ?>—<?php endif; ?></td>
+<td><?= h($request->attendanceDuration()) ?></td>
+<td><div class="request-actions" role="group" aria-label="Ações da solicitação <?= h($request->number) ?>">
+<?= $this->Html->link('👁 Ver', ['action' => 'view', $request->id], ['class' => 'request-action request-action-view', 'title' => 'Ver solicitação']) ?>
+<?php if (\App\Service\RequestAccess::canEdit($request, \App\Domain\Enum\UserRole::MANTENEDOR->value, (int)$this->getRequest()->getAttribute('identity')->getIdentifier())): ?>
+<?= $this->Html->link('✏ Editar', ['action' => 'edit', $request->id], ['class' => 'request-action request-action-edit', 'title' => 'Editar solicitação']) ?>
+<?php endif; ?>
+</div></td>
+</tr>
+<?php endforeach; ?>
+</tbody></table></div>
+<?php else: ?>
 <div class="request-list">
 <?php foreach ($requests as $request): ?>
 <article>
@@ -28,4 +54,5 @@
 </article>
 <?php endforeach; ?>
 </div>
+<?php endif; ?>
 <?= $this->element('pagination') ?>
