@@ -63,7 +63,7 @@ Na solicitação, o usuário pesquisa e seleciona apenas setores ativos.
 ## 7. Apontamentos
 Uma solicitação pode ter vários apontamentos, exibidos em grade compacta: Funcionário, Data, Hora início, Hora fim, Serviço realizado (texto livre) e Ações (+/−). No celular a linha se reorganiza sem card individual.
 
-Funcionário é selecionado por nome/matrícula no TOTVS, somente nas funções locais ativas e situações vazio/espaço ou F. Seleção revalidada ao salvar; matrícula, nome, código e descrição da função ficam em snapshot local e na auditoria. Não importar funcionários. Usar exclusivamente RA_MAT, RA_NOME, RA_CODFUNC e RA_SITFOLH.
+Funcionário é selecionado por nome/matrícula no TOTVS; excluir somente quem tiver `RA_SITFOLH = 'D'` após `RTRIM` (incluindo situações vazia, F e A). `RA_CODFUNC` pode ser retornado para exibir a função, mas não restringe a busca nem a seleção. Seleção revalidada ao salvar; matrícula, nome, código e descrição da função ficam em snapshot local e na auditoria. Não importar funcionários. Usar exclusivamente RA_MAT, RA_NOME, RA_CODFUNC e RA_SITFOLH.
 
 Apontamento inicial vazio é opcional conforme o fluxo vigente. Qualquer linha adicionada/preenchida exige funcionário, data, início, fim e serviço. Até 50 linhas, com ordem, autoria e data de registro; preservar apontamentos anteriores e os fluxos homologados.
 

@@ -11,11 +11,11 @@ final class TotvsEmployeeQueries
         $columns = 'RTRIM(RA_MAT) AS registration, RTRIM(RA_NOME) AS name, RTRIM(RA_CODFUNC) AS function_code';
         $source = 'FROM DADOSP12.dbo.SRA010';
         if ($find) {
-            return "SELECT DISTINCT $columns $source WHERE RTRIM(RA_MAT) = :registration";
+            return "SELECT DISTINCT $columns $source WHERE ISNULL(RTRIM(RA_SITFOLH), '') <> 'D' AND RTRIM(RA_MAT) = :registration";
         }
 
         return "SELECT TOP (20) $columns $source\n"
-            . "WHERE UPPER(RA_NOME) LIKE UPPER(:name_term) OR UPPER(RA_MAT) LIKE UPPER(:registration_term)\n"
+            . "WHERE ISNULL(RTRIM(RA_SITFOLH), '') <> 'D' AND (UPPER(RA_NOME) LIKE UPPER(:name_term) OR UPPER(RA_MAT) LIKE UPPER(:registration_term))\n"
             . "GROUP BY RA_MAT, RA_NOME, RA_CODFUNC\n"
             . "ORDER BY CASE WHEN RTRIM(RA_MAT) = :exact_registration OR UPPER(RTRIM(RA_NOME)) = UPPER(:exact_name) THEN 0 ELSE 1 END, name, registration, function_code";
     }

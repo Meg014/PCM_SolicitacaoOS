@@ -48,13 +48,16 @@ class TotvsEmployeesServiceTest extends TestCase
         $this->assertSame('006783 - ABADIO OLIVEIRA - Mecânico', $service->search('A%_[')[0]['label']);
     }
 
-    public function testSituationsAndFunctionsDoNotRestrictEligibleEmployees(): void
+    public function testNonDismissedSituationsAndUnlistedFunctionsRemainEligible(): void
     {
-        foreach (['', ' ', 'F', 'A', 'D', 'X'] as $situation) {
-            $service = $this->service([array_replace($this->row($situation), ['function_code' => '99999'])]);
+        foreach (['', ' ', 'F', 'A', 'X'] as $situation) {
+            $service = $this->getMockBuilder(TotvsEmployeesService::class)->onlyMethods(['read', 'functions'])->getMock();
+            $service->method('functions')->willReturn([]);
+            $service->method('read')->willReturn([array_replace($this->row($situation), ['function_code' => '00020'])]);
             $result = $service->search('AB');
             $this->assertCount(1, $result);
             $this->assertSame('006783 - ABADIO OLIVEIRA', $result[0]['label']);
+            $this->assertSame('00020', $result[0]['function_code']);
             $this->assertSame($result[0], $service->find('006783'));
         }
     }
@@ -90,17 +93,18 @@ class TotvsEmployeesServiceTest extends TestCase
         $this->assertSame('OUTRO FUNCIONÁRIO', $service->find('006783', $selected['selection_key'])['name']);
     }
 
-    public function testLookupUsesOnlyNameAndRegistrationAndPrioritizesExactMatches(): void
+    public function testLookupFiltersOnlyDismissedEmployeesAndPrioritizesExactMatches(): void
     {
         foreach ([true, false] as $find) {
             $sql = TotvsEmployeeQueries::lookup($find);
             $this->assertTrue(TotvsEmployeeQueries::allows($sql));
             $this->assertStringContainsString('FROM DADOSP12.dbo.SRA010', $sql);
-            $this->assertStringNotContainsString('RA_SITFOLH', $sql);
+            $this->assertStringContainsString("ISNULL(RTRIM(RA_SITFOLH), '') <> 'D'", $sql);
             $this->assertStringNotContainsString('authorized_functions', $sql);
+            $this->assertStringNotContainsString('RA_CODFUNC IN', $sql);
             $this->assertFalse(TotvsEmployeeQueries::allows($sql . ' AND RA_CODFUNC = 1'));
         }
-        $this->assertStringContainsString('WHERE RTRIM(RA_MAT) = :registration', TotvsEmployeeQueries::lookup(true));
+        $this->assertStringContainsString("AND RTRIM(RA_MAT) = :registration", TotvsEmployeeQueries::lookup(true));
         $this->assertStringContainsString('ORDER BY CASE WHEN RTRIM(RA_MAT) = :exact_registration', TotvsEmployeeQueries::lookup());
     }
 
